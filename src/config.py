@@ -104,26 +104,37 @@ class ModelConfig:
 
     
     @classmethod
-    def get_dynamic_model_configs(cls, use_dynamic: bool = True) -> Dict[LLMProvider, Dict[str, Any]]:
+    def get_dynamic_model_configs(cls, use_dynamic: bool = True, provider: LLMProvider = None) -> Dict[LLMProvider, Dict[str, Any]]:
         """Get model configurations with optional dynamic fetching"""
         if not use_dynamic:
             return cls.STATIC_MODEL_CONFIGS
             
         configs = {}
         
-        # Fetch OpenAI models
-        try:
-            configs[LLMProvider.OPENAI] = ModelFetcher.fetch_openai_models()
-        except Exception as e:
-            logger.error(f"Error fetching OpenAI models: {e}")
-            configs[LLMProvider.OPENAI] = cls.STATIC_MODEL_CONFIGS[LLMProvider.OPENAI]
+        # If provider is specified, only fetch for that provider
+        if provider:
+            providers_to_fetch = [provider]
+        else:
+            providers_to_fetch = [LLMProvider.OPENAI, LLMProvider.GOOGLE_GEMINI]
         
-        # Fetch Google models
-        try:
-            configs[LLMProvider.GOOGLE_GEMINI] = ModelFetcher.fetch_google_models()
-        except Exception as e:
-            logger.error(f"Error fetching Google models: {e}")
-            configs[LLMProvider.GOOGLE_GEMINI] = cls.STATIC_MODEL_CONFIGS[LLMProvider.GOOGLE_GEMINI]
+        for prov in providers_to_fetch:
+            if prov == LLMProvider.OPENAI:
+                try:
+                    configs[LLMProvider.OPENAI] = ModelFetcher.fetch_openai_models()
+                except Exception as e:
+                    logger.error(f"Error fetching OpenAI models: {e}")
+                    configs[LLMProvider.OPENAI] = cls.STATIC_MODEL_CONFIGS[LLMProvider.OPENAI]
+            elif prov == LLMProvider.GOOGLE_GEMINI:
+                try:
+                    configs[LLMProvider.GOOGLE_GEMINI] = ModelFetcher.fetch_google_models()
+                except Exception as e:
+                    logger.error(f"Error fetching Google models: {e}")
+                    configs[LLMProvider.GOOGLE_GEMINI] = cls.STATIC_MODEL_CONFIGS[LLMProvider.GOOGLE_GEMINI]
+        
+        # Add static configs for providers not fetched
+        for static_provider in cls.STATIC_MODEL_CONFIGS:
+            if static_provider not in configs:
+                configs[static_provider] = cls.STATIC_MODEL_CONFIGS[static_provider]
         
         return configs
     
@@ -143,7 +154,7 @@ class ModelConfig:
     def model_configs(self):
         """Get model configurations (cached)"""
         if self._model_configs is None:
-            self._model_configs = self.get_dynamic_model_configs(self.use_dynamic_models)
+            self._model_configs = self.get_dynamic_model_configs(self.use_dynamic_models, self.llm_provider)
         return self._model_configs
     
     def _get_llm_provider(self) -> LLMProvider:
