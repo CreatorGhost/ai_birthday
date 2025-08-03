@@ -4,11 +4,22 @@ A Retrieval-Augmented Generation (RAG) pipeline that processes FAQ documents and
 
 ## Features
 
-- **Document Processing**: Automatically loads and processes .docx files from the FAQ folder
-- **Vector Embeddings**: Uses OpenAI's text-embedding-ada-002 model for high-quality embeddings
-- **Vector Database**: Stores embeddings in Pinecone for fast similarity search
-- **Question Answering**: Provides contextual answers with source document references
-- **Two Interfaces**: Command-line interface and Streamlit web app
+### Core RAG System
+- **Document Processing**: Automatically loads and processes .docx FAQ documents
+- **Vector Embeddings**: Uses OpenAI embeddings for semantic search
+- **Pinecone Integration**: Stores and retrieves vectors using Pinecone vector database
+- **Question Answering**: Provides accurate answers with source document references
+- **Dual Interface**: Both command-line and web-based Streamlit interface
+- **Dynamic Model Support**: Automatically fetches and uses latest OpenAI models
+- **Advanced RAG**: Implements sophisticated retrieval-augmented generation with LangGraph
+
+### Bitrix CRM Integration 🆕
+- **CRM Data Access**: Retrieve deals, contacts, companies, leads, and activities from Bitrix24
+- **Semantic CRM Search**: Convert CRM data into embeddings for natural language queries
+- **Automatic Synchronization**: Keep your vector store updated with latest CRM data
+- **Flexible Configuration**: Customize data processing and synchronization settings
+- **Command-line Tools**: Utilities for testing, syncing, and searching CRM data
+- **Unified Search**: Search across both FAQ documents and CRM data simultaneously
 
 ## Prerequisites
 
@@ -147,17 +158,34 @@ This provides a user-friendly web interface where you can:
 ## Project Structure
 
 ```
-ai_birthday/
-├── FAQ/                          # Folder containing .docx FAQ files
+FAQ-RAG-Pipeline/
+├── rag_system/             # Core RAG system
+│   ├── __init__.py         # Package initialization
+│   ├── config.py           # Configuration management
+│   ├── document_processor.py # Document loading and processing
+│   ├── rag_pipeline.py     # RAG pipeline implementation
+│   ├── model_fetcher.py    # Dynamic model fetching
+│   └── model_utils.py      # Model utilities
+├── bitrix_integration/     # Bitrix CRM integration
+│   ├── __init__.py         # Package initialization
+│   ├── config.py           # Bitrix-specific configuration
+│   ├── bitrix_client.py    # Bitrix24 API client
+│   ├── bitrix_data_processor.py # CRM data processing
+│   ├── bitrix_pipeline.py  # CRM pipeline orchestration
+│   ├── bitrix_utils.py     # Command-line utilities
+│   ├── example_usage.py    # Usage examples
+│   └── README.md           # Bitrix integration docs
+├── FAQ/                    # FAQ documents (.docx files)
 │   ├── TASK 5.1.1 - LL. FESTIVAL - FAQ.docx
 │   ├── TASK 5.1.1 - LL. YAS- FAQ.docx
 │   └── ...
-├── simple_rag.py                 # Command-line RAG pipeline
-├── rag_pipeline.py               # Streamlit web interface
-├── requirements.txt              # Python dependencies
-├── .env.example                  # Environment variables template
-├── .env                          # Your environment variables (create this)
-└── README.md                     # This file
+├── tests/                  # Test scripts
+├── app.py                  # Streamlit web interface
+├── simple_rag.py          # Command-line interface
+├── requirements.txt       # Python dependencies
+├── .env.example          # Environment variables template
+├── .env                    # Your environment variables (create this)
+└── README.md             # This file
 ```
 
 ## How It Works
