@@ -19,12 +19,63 @@ class DocumentProcessor:
         elif 'FESTIVAL' in filename_upper:
             return 'FESTIVAL_CITY'
         elif 'HELLO' in filename_upper:
-            return 'HELLO_PARK'
+            return 'GENERAL'  # Changed from HELLO_PARK to GENERAL for better semantics
         else:
             return 'UNKNOWN_LOCATION'
     
+    def _get_location_display_name(self, location_code):
+        """Get human-readable location name"""
+        location_mapping = {
+            'DALMA_MALL': 'Dalma Mall',
+            'YAS_MALL': 'Yas Mall', 
+            'FESTIVAL_CITY': 'Festival City',
+            'GENERAL': 'All Locations'
+        }
+        return location_mapping.get(location_code, location_code)
+    
+    def _get_content_type_from_filename(self, filename):
+        """Extract content type from filename"""
+        filename_upper = filename.upper()
+        
+        if 'FAQ' in filename_upper:
+            return 'FAQ'
+        elif 'WAIVER' in filename_upper:
+            return 'Waiver Information'
+        elif 'PARK RULES' in filename_upper or 'RULES' in filename_upper:
+            return 'Park Rules'
+        else:
+            return 'General Information'
+    
+    def _enhance_content_with_context(self, content, location_code, content_type, filename):
+        """Add location and content context to document content for better retrieval"""
+        location_display = self._get_location_display_name(location_code)
+        
+        # Create context header
+        if location_code == 'GENERAL':
+            context_header = f"LOCATION: {location_display} | TYPE: {content_type}\n"
+            context_header += "This information applies to all Leo & Loona locations unless specified otherwise.\n\n"
+        else:
+            context_header = f"LOCATION: {location_display} | TYPE: {content_type}\n"
+            context_header += f"This information is specific to Leo & Loona at {location_display}.\n\n"
+        
+        # Add location keywords for better search
+        location_keywords = ""
+        if location_code == 'DALMA_MALL':
+            location_keywords = "Keywords: Dalma Mall, Abu Dhabi, Dalma\n"
+        elif location_code == 'YAS_MALL':
+            location_keywords = "Keywords: Yas Mall, Abu Dhabi, Yas, POD holder discounts\n"
+        elif location_code == 'FESTIVAL_CITY':
+            location_keywords = "Keywords: Festival City, Dubai, Festival\n"
+        elif location_code == 'GENERAL':
+            location_keywords = "Keywords: All locations, General information, Leo Loona\n"
+        
+        # Combine context + keywords + original content
+        enhanced_content = context_header + location_keywords + "\n" + content
+        
+        return enhanced_content
+    
     def load_docx_files(self):
-        """Load all .docx files from the FAQ folder using LangChain UnstructuredWordDocumentLoader"""
+        """Load all .docx files from the FAQ folder with enhanced location context"""
         documents = []
         
         for filename in os.listdir(self.faq_folder_path):
@@ -35,31 +86,42 @@ class DocumentProcessor:
                     loader = UnstructuredWordDocumentLoader(file_path)
                     docs = loader.load()
                     
-                    # Extract location from filename
-                    location = self._extract_location_from_filename(filename)
+                    # Extract location and content type from filename
+                    location_code = self._extract_location_from_filename(filename)
+                    content_type = self._get_content_type_from_filename(filename)
+                    location_display = self._get_location_display_name(location_code)
                     
                     # Process each document and enhance metadata
                     for doc in docs:
-                        # Ensure we have the filename in metadata for future deletion
-                        doc.metadata.update({
-                            'filename': filename,
-                            'file_path': file_path,
-                            'source': filename,  # Keep source for backward compatibility
-                            'document_type': 'docx',
-                            'loader_type': 'UnstructuredWordDocumentLoader',
-                            'location': location,  # Add location metadata
-                            'location_display': location.replace('_', ' ').title()  # Human readable
-                        })
-                        
-                        # Only add documents with content
                         if doc.page_content.strip():
+                            # Enhance content with location context
+                            enhanced_content = self._enhance_content_with_context(
+                                doc.page_content, location_code, content_type, filename
+                            )
+                            
+                            # Update document content
+                            doc.page_content = enhanced_content
+                            
+                            # Enhanced metadata
+                            doc.metadata.update({
+                                'filename': filename,
+                                'file_path': file_path,
+                                'source': filename,
+                                'document_type': 'docx',
+                                'loader_type': 'UnstructuredWordDocumentLoader',
+                                'location': location_code,
+                                'location_display': location_display,
+                                'content_type': content_type,
+                                'enhanced': True  # Flag to indicate enhanced processing
+                            })
+                            
                             documents.append(doc)
-                            print(f"Loaded: {filename} [{location}] ({len(doc.page_content)} characters)")
+                            print(f"Enhanced: {filename} [{location_display}] - {content_type} ({len(enhanced_content)} chars)")
                         
                 except Exception as e:
                     print(f"Error loading {filename}: {str(e)}")
         
-        print(f"Successfully loaded {len(documents)} documents")
+        print(f"Successfully loaded {len(documents)} enhanced documents")
         return documents
     
     def load_docx_files_with_elements(self):
@@ -118,8 +180,13 @@ class DocumentProcessor:
             
             # Ensure location metadata is preserved in chunks
             if 'location' not in chunk.metadata and 'filename' in chunk.metadata:
-                chunk.metadata['location'] = self._extract_location_from_filename(chunk.metadata['filename'])
-                chunk.metadata['location_display'] = chunk.metadata['location'].replace('_', ' ').title()
+                location_code = self._extract_location_from_filename(chunk.metadata['filename'])
+                chunk.metadata['location'] = location_code
+                chunk.metadata['location_display'] = self._get_location_display_name(location_code)
+                
+            # Ensure content type is preserved in chunks
+            if 'content_type' not in chunk.metadata and 'filename' in chunk.metadata:
+                chunk.metadata['content_type'] = self._get_content_type_from_filename(chunk.metadata['filename'])
         
         # Calculate average chunk size for reporting
         chunk_sizes = [len(doc.page_content) for doc in split_docs]

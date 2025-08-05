@@ -63,6 +63,13 @@ class RAGPipeline:
         # Initialize model configuration
         self.model_config = ModelConfig()
         
+        # Available locations - configured here for consistency
+        self.available_locations = [
+            {"name": "Dalma Mall", "city": "Abu Dhabi"},
+            {"name": "Yas Mall", "city": "Abu Dhabi"},
+            {"name": "Festival City Mall", "city": "Dubai"}
+        ]
+        
         # Get API keys and configuration
         self.pinecone_api_key = os.getenv('PINECONE_API_KEY')
         self.pinecone_environment = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
@@ -138,21 +145,26 @@ class RAGPipeline:
             2. If the current question is just a location name (like "Festival City"), respond with that location
             3. If the chat history shows I previously asked for location and user is now providing it, use that location
             4. Look for keywords: "Dalma", "Yas", "Festival", "City", "Mall"
-            5. If no location can be determined, respond with "NEEDS_CLARIFICATION"
+            5. For GENERAL questions (hours, prices, safety rules, booking info, etc.) that don't specify location, respond with "GENERAL" - the system can provide general information or information from all locations
+            6. Only respond with "NEEDS_CLARIFICATION" if the question specifically requires location-specific information that varies significantly between locations AND no location is mentioned
             
             Examples:
             - "What are prices at Dalma Mall?" → "Dalma Mall"
             - "Festival City" → "Festival City"
             - "Yas" → "Yas Mall"
-            - "What are hours?" → "NEEDS_CLARIFICATION"
+            - "What are your opening hours?" → "GENERAL"
+            - "What are your prices?" → "GENERAL"
+            - "What are your safety rules?" → "GENERAL"
+            - "Can I book a birthday party?" → "GENERAL"
+            - "Do you have parking specific to your mall location?" → "NEEDS_CLARIFICATION"
             
-            Response (location name only or NEEDS_CLARIFICATION):""",
+            Response (location name, "GENERAL", or "NEEDS_CLARIFICATION"):""",
             input_variables=["question", "chat_history"]
         )
         
         # Enhanced RAG generation prompt with location, date/time awareness and contextual safety messaging
         self.rag_prompt = PromptTemplate(
-            template="""You are Leo & Loona's official FAQ assistant for {location}.
+            template="""You are Leo & Loona's official FAQ assistant{location_context}.
             
             {datetime_context}
             
@@ -175,16 +187,17 @@ class RAGPipeline:
                - Age restrictions or child activities
                - Play area access or activities
                - When safety information is directly relevant to the question
-            4. Provide location-specific information for {location} when available
-            5. If some specific details are missing, provide what information IS available from the documents
-            6. Be helpful and use ALL relevant information from the context
-            7. Keep responses informative but friendly
-            8. Don't say you don't know if the documents contain relevant information
-            9. For safety-related questions, emphasize: "Adult supervision is required at all times for children's safety"
-            10. When providing hours, specify if they apply to "today" or the specific day type
+            4. If location is "General", provide comprehensive information from all available locations, clearly noting when information varies by location
+            5. If location is specific (Dalma Mall, Yas Mall, Festival City), focus on that location's information
+            6. If some specific details are missing, provide what information IS available from the documents
+            7. Be helpful and use ALL relevant information from the context
+            8. Keep responses informative but friendly
+            9. Don't say you don't know if the documents contain relevant information
+            10. For safety-related questions, emphasize: "Adult supervision is required at all times for children's safety"
+            11. When providing hours, specify if they apply to "today" or the specific day type
             
             Answer:""",
-            input_variables=["context", "question", "chat_history", "location", "enhanced_context", "datetime_context"]
+            input_variables=["context", "question", "chat_history", "location", "enhanced_context", "datetime_context", "location_context"]
         )
         
         # Location clarification prompt (date-aware)
@@ -527,6 +540,16 @@ DAY CLASSIFICATION:
                 "needs_location_clarification": True,
                 "loop_step": state.get("loop_step", 0)
             }
+        elif location_result == "GENERAL":
+            print("---LOCATION: GENERAL QUESTION---")
+            return {
+                "question": question,
+                "chat_history": chat_history,
+                "documents": state.get("documents", []),
+                "location": "General",
+                "needs_location_clarification": False,
+                "loop_step": state.get("loop_step", 0)
+            }
         else:
             print(f"---LOCATION DETECTED: {location_result}---")
             return {
@@ -689,36 +712,91 @@ SAFETY REQUIREMENTS:
     
     def generate_clarification(self, state: RAGState) -> RAGState:
         """
-        Generate location clarification question
-        
-        Args:
-            state: The current graph state
-            
-        Returns:
-            Updated state with clarification message
+        Generate intelligent clarification message using LLM
         """
         print("---GENERATE CLARIFICATION---")
         question = state["question"]
+        chat_history = state.get("chat_history", [])
         
-        # Get current date/time context
+        # Format chat history for context
+        chat_history_str = self._format_chat_history(chat_history)
+        
+        # Get current date/time context for more natural responses
         datetime_context = self._format_datetime_context()
         
-        # Generate clarification using prompt
-        clarification_chain = self.location_clarification_prompt | self.llm | StrOutputParser()
-        clarification = clarification_chain.invoke({
-            "question": question,
-            "datetime_context": datetime_context
-        })
+        # Format available locations for the prompt
+        locations_list = "\n".join([
+            f"{i+1}️⃣ {loc['name']} ({loc['city']})" 
+            for i, loc in enumerate(self.available_locations)
+        ])
+        
+        # Use LLM to generate contextual clarification with predefined locations
+        clarification_prompt = PromptTemplate(
+            template="""You are Leo & Loona's FAQ assistant. The user asked a question that requires location-specific information.
+
+{datetime_context}
+
+User's Question: "{question}"
+Chat History: {chat_history}
+
+Available Leo & Loona Locations:
+{locations_list}
+
+Instructions:
+1. Start with a warm greeting: "Thanks for your interest in Leo & Loona! 🎉"
+2. Acknowledge their specific question topic (extract the main topic from "{question}")
+3. Explain briefly that you need location information because details may vary by location
+4. Present ALL the available locations in this exact format:
+   "📍 Available Locations:
+   {locations_list}"
+5. Ask them to specify which location they're interested in
+6. Keep it friendly, concise, and well-formatted
+7. Always show ALL locations, not just some
+
+Example format:
+"Thanks for your interest in Leo & Loona! 🎉
+To help you with [question topic], could you please let us know which location you're referring to?
+
+📍 Available Locations:
+{locations_list}
+
+Please let us know which location you're interested in!"
+
+Generate the clarification message following this exact format:""",
+            input_variables=["question", "chat_history", "datetime_context", "locations_list"]
+        )
+        
+        # Get documents context for location information
+        documents = state.get("documents", [])
+        documents_context = self._format_docs(documents) if documents else "No specific documents retrieved yet."
+        
+        try:
+            clarification_chain = clarification_prompt | self.llm | StrOutputParser()
+            clarification = clarification_chain.invoke({
+                "question": question,
+                "chat_history": chat_history_str,
+                "datetime_context": datetime_context,
+                "locations_list": locations_list
+            })
+        except Exception as e:
+            print(f"---CLARIFICATION GENERATION ERROR: {e}---")
+            # Static fallback with predefined locations
+            print(f"---USING STATIC FALLBACK WITH PREDEFINED LOCATIONS---")
+            clarification = f"""Thanks for your interest in Leo & Loona! 🎉
+To help you with '{question}', could you please let us know which location you're referring to?
+
+📍 Available Locations:
+{locations_list}
+
+Please let us know which location you're interested in!"""
         
         return {
             "question": question,
-            "chat_history": state.get("chat_history", []),
+            "chat_history": chat_history,
             "documents": state.get("documents", []),
-            "location": state.get("location", "unknown"),
-            "needs_location_clarification": True,
             "generation": clarification,
             "source_documents": [],
-            "loop_step": state.get("loop_step", 0) + 1
+            "loop_step": 1
         }
     
     def generate_escalation(self, state: RAGState) -> RAGState:
@@ -818,40 +896,19 @@ SAFETY REQUIREMENTS:
     
     def retrieve_documents(self, state: RAGState) -> RAGState:
         """
-        Retrieve documents from vectorstore with location-aware filtering
-        
-        Args:
-            state: The current graph state
-            
-        Returns:
-            Updated state with retrieved documents
+        Simple document retrieval from vectorstore
         """
         print("---RETRIEVE DOCUMENTS---")
         question = state["question"]
         
-        # Detect location from question
-        detected_location = self._detect_location_from_query(question)
-        
         # Retrieve documents from vector store
-        raw_documents = self.retriever.invoke(question)
-        print(f"📚 Retrieved {len(raw_documents)} raw documents from vector store")
-        
-        # Apply location-aware filtering
-        filtered_documents = self._filter_documents_by_location(raw_documents, detected_location)
-        print(f"🔍 After location filtering: {len(filtered_documents)} documents")
-        
-        # Update state location if detected
-        current_location = state.get("location", "unknown")
-        if detected_location != 'unknown':
-            current_location = detected_location
+        documents = self.retriever.invoke(question)
+        print(f"📚 Retrieved {len(documents)} documents from vector store")
         
         return {
-            "documents": filtered_documents,
+            "documents": documents,
             "question": question,
             "chat_history": state.get("chat_history", []),
-            "location": current_location,
-            "needs_location_clarification": state.get("needs_location_clarification", False),
-            "enhanced_context": state.get("enhanced_context", ""),
             "loop_step": state.get("loop_step", 0)
         }
     
@@ -936,6 +993,12 @@ SAFETY REQUIREMENTS:
         # Get current date/time context
         datetime_context = self._format_datetime_context()
         
+        # Create location context string for the prompt
+        if location == "General":
+            location_context = " across all locations"
+        else:
+            location_context = f" for {location}"
+        
         # Generate answer using enhanced RAG chain
         rag_chain = self.rag_prompt | self.llm | StrOutputParser()
         generation = rag_chain.invoke({
@@ -944,7 +1007,8 @@ SAFETY REQUIREMENTS:
             "chat_history": chat_history_str,
             "location": location,
             "enhanced_context": enhanced_context,
-            "datetime_context": datetime_context
+            "datetime_context": datetime_context,
+            "location_context": location_context
         })
         
         return {
@@ -958,7 +1022,183 @@ SAFETY REQUIREMENTS:
             "loop_step": loop_step + 1
         }
     
-    # Enhanced Routing Methods
+    def generate_simplified_answer(self, state: RAGState) -> RAGState:
+        """
+        Generate answer with simplified logic combining location detection, context enhancement, and answer generation
+        """
+        print("---GENERATE SIMPLIFIED ANSWER---")
+        question = state["question"]
+        documents = state["documents"]
+        chat_history = state.get("chat_history", [])
+        
+        # Simple location detection from question
+        location = self._detect_location_simple(question)
+        
+        # Format documents for context
+        context = self._format_docs(documents)
+        
+        # Format chat history for context
+        chat_history_str = self._format_chat_history(chat_history)
+        
+        # Get current date/time context
+        datetime_context = self._format_datetime_context()
+        
+        # Create location context string
+        if location == "General":
+            location_context = " across all locations"
+        else:
+            location_context = f" for {location}"
+        
+        # Simple enhanced context
+        enhanced_context = f"LOCATION: {location}\n"
+        if any(keyword in question.lower() for keyword in ['safety', 'rule', 'supervision', 'age', 'child']):
+            enhanced_context += "SAFETY: Adult supervision is required at all times\n"
+        
+        # Generate answer using simplified prompt
+        simplified_prompt = PromptTemplate(
+            template="""You are Leo & Loona's FAQ assistant{location_context}.
+            
+            {datetime_context}
+            
+            Retrieved Information: {context}
+            Chat History: {chat_history}
+            Question: {question}
+            
+            Instructions:
+            1. Answer using the retrieved information
+            2. Be helpful and friendly
+            3. If location is "General", provide comprehensive information from all locations
+            4. Include safety reminders only when relevant to the question
+            5. Use current date/time context when relevant
+            
+            Answer:""",
+            input_variables=["context", "question", "chat_history", "datetime_context", "location_context"]
+        )
+        
+        rag_chain = simplified_prompt | self.llm | StrOutputParser()
+        generation = rag_chain.invoke({
+            "context": context,
+            "question": question,
+            "chat_history": chat_history_str,
+            "datetime_context": datetime_context,
+            "location_context": location_context
+        })
+        
+        return {
+            "documents": documents,
+            "question": question,
+            "chat_history": chat_history,
+            "location": location,
+            "enhanced_context": enhanced_context,
+            "generation": generation,
+            "source_documents": documents,
+            "loop_step": 1
+        }
+    
+    def _detect_location_simple(self, question: str) -> str:
+        """Simple location detection without LLM"""
+        question_lower = question.lower()
+        
+        if any(keyword in question_lower for keyword in ['dalma']):
+            return "Dalma Mall"
+        elif any(keyword in question_lower for keyword in ['yas']):
+            return "Yas Mall"
+        elif any(keyword in question_lower for keyword in ['festival', 'dubai']):
+            return "Festival City"
+        else:
+            return "General"
+    
+    def _requires_location_clarification(self, question: str, documents: list) -> bool:
+        """
+        Use LLM to intelligently determine if question requires location clarification
+        """
+        question_lower = question.lower().strip()
+        
+        # Quick check: if location is already specified, no clarification needed
+        location_keywords = []
+        for loc in self.available_locations:
+            # Add location name and city keywords
+            location_keywords.extend([
+                loc['name'].lower(),
+                loc['city'].lower(),
+                # Add common variations
+                loc['name'].lower().replace(' mall', '').replace(' city', ''),
+            ])
+        
+        has_location = any(keyword in question_lower for keyword in location_keywords)
+        
+        if has_location:
+            return False  # Location already specified
+        
+        # Use LLM to determine if location clarification is needed
+        location_analysis_prompt = PromptTemplate(
+            template="""You are analyzing a user question to determine if it requires location-specific information.
+
+Context: This is for a business with multiple physical locations. Some information varies by location (like prices, hours, contact details, specific services, parking, addresses), while other information is general (like safety policies, general service descriptions, company information).
+
+Question: "{question}"
+
+Instructions:
+1. If the question already mentions a specific location or place name, respond "NO"
+2. If the question asks for information that typically varies by physical location (prices, hours, contact info, booking, address, parking, specific services, etc.), respond "YES"
+3. If the question asks for general information that's typically the same across all locations (safety rules, general policies, what the business does, age requirements, etc.), respond "NO"
+4. When in doubt, prefer "NO" to avoid over-asking for clarification
+5. Consider the context of a multi-location business when making your decision
+
+Examples for context:
+- "What are the prices?" → "YES" (prices may vary by location)
+- "What are your opening hours?" → "YES" (hours typically vary by location)
+- "What are your safety rules?" → "NO" (safety rules are typically standardized)
+- "What activities do you have?" → "NO" (general service offerings are typically the same)
+- "How do I contact you?" → "YES" (contact info varies by location)
+- "What age groups do you serve?" → "NO" (service parameters are typically the same)
+
+Respond with only "YES" or "NO":""",
+            input_variables=["question"]
+        )
+        
+        try:
+            analysis_chain = location_analysis_prompt | self.llm_json_mode | StrOutputParser()
+            result = analysis_chain.invoke({"question": question})
+            
+            needs_clarification = result.strip().upper() == "YES"
+            print(f"---LLM LOCATION ANALYSIS: {result.strip()} for '{question}'---")
+            return needs_clarification
+            
+        except Exception as e:
+            print(f"---LOCATION ANALYSIS ERROR: {e}, defaulting to False---")
+            return False  # Default to not asking for clarification if LLM fails
+    
+    def route_after_retrieval(self, state: RAGState) -> str:
+        """
+        Smart routing after retrieval - check if location clarification is needed
+        """
+        documents = state.get("documents", [])
+        question = state["question"]
+        
+        # Ask for location clarification for location-dependent questions
+        if self._requires_location_clarification(question, documents):
+            print("---ROUTE: NEEDS LOCATION CLARIFICATION---")
+            return "clarification"
+        
+        # If we have documents, generate answer
+        if documents:
+            print("---ROUTE: GENERATE ANSWER---")
+            return "generate"
+        
+        # If no documents and question is very vague, ask for clarification
+        question_lower = question.lower().strip()
+        vague_questions = ['hi', 'hello', 'help', 'info', 'what', 'tell me']
+        
+        if any(vague in question_lower for vague in vague_questions) and len(question.split()) <= 2:
+            print("---ROUTE: NEEDS CLARIFICATION---")
+            return "clarification"
+        
+        # Otherwise still try to generate an answer
+        print("---ROUTE: GENERATE ANSWER (NO DOCS)---")
+        return "generate"
+    
+    # Legacy routing methods (keeping for backward compatibility)
     
     def route_after_location_detection(self, state: RAGState) -> str:
         """
@@ -1020,74 +1260,41 @@ SAFETY REQUIREMENTS:
             return "enhance_context"
     
     def setup_graph(self):
-        """Setup the enhanced LangGraph workflow"""
+        """Setup the simplified LangGraph workflow"""
         if not self.retriever:
             raise ValueError("Vector store and retriever must be initialized first")
         
-        # Create the enhanced graph
+        # Create the simplified graph with only essential nodes
         workflow = StateGraph(RAGState)
         
-        # Add all nodes
-        workflow.add_node("detect_location", self.detect_location)
+        # Add only essential nodes
         workflow.add_node("retrieve", self.retrieve_documents)
-        workflow.add_node("grade_documents", self.grade_documents)
-        workflow.add_node("enhance_context", self.enhance_context)
-        workflow.add_node("score_confidence", self.score_confidence)
-        workflow.add_node("generate", self.generate_answer)
+        workflow.add_node("generate", self.generate_simplified_answer)
         workflow.add_node("clarification", self.generate_clarification)
-        workflow.add_node("escalation", self.generate_escalation)
         
-        # Define the enhanced workflow
-        # Start with location detection
-        workflow.add_edge(START, "detect_location")
+        # Define the simplified workflow
+        # Start with retrieval
+        workflow.add_edge(START, "retrieve")
         
-        # Route after location detection
+        # Route after retrieval: either generate answer or ask for clarification
         workflow.add_conditional_edges(
-            "detect_location",
-            self.route_after_location_detection,
-            {
-                "clarification": "clarification",
-                "retrieve": "retrieve"
-            }
-        )
-        
-        # Clarification ends the conversation
-        workflow.add_edge("clarification", END)
-        
-        # Normal flow: retrieve -> grade -> enhance context
-        workflow.add_edge("retrieve", "grade_documents")
-        
-        # After grading, enhance context
-        workflow.add_conditional_edges(
-            "grade_documents",
-            self.decide_to_generate,
-            {
-                "enhance_context": "enhance_context"
-            }
-        )
-        
-        # After enhancing context, score confidence
-        workflow.add_edge("enhance_context", "score_confidence")
-        
-        # Route based on confidence score
-        workflow.add_conditional_edges(
-            "score_confidence",
-            self.route_after_confidence_scoring,
+            "retrieve",
+            self.route_after_retrieval,
             {
                 "generate": "generate",
-                "escalation": "escalation"
+                "clarification": "clarification"
             }
         )
         
-        # Both generate and escalation end the conversation
+        # Both generate and clarification end the conversation
         workflow.add_edge("generate", END)
-        workflow.add_edge("escalation", END)
+        workflow.add_edge("clarification", END)
         
         # Compile the graph
         self.graph = workflow.compile()
         
-        print("Enhanced LangGraph RAG workflow setup complete")
-        print("Flow: detect_location -> [clarification | retrieve] -> grade -> enhance_context -> score_confidence -> [generate | escalation]")
+        print("Simplified LangGraph RAG workflow setup complete")
+        print("Flow: retrieve -> [generate | clarification] -> END")
     
     def answer_question(self, question: str, chat_history: List[dict] = None) -> dict:
         """
