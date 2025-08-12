@@ -33,7 +33,6 @@ class ModelFetcher:
                 if any(prefix in model_id for prefix in ['gpt-', 'o1-', 'o3-']):
                     chat_models[model_id] = {
                         "model_name": model_id,
-                        "temperature": 0.1,
                         "max_tokens": 4096
                     }
                 
@@ -85,29 +84,30 @@ class ModelFetcher:
             embedding_models = {}
             
             for model in models:
-                model_name = model.name.replace('models/', '')
+                model_name_without_prefix = model.name.replace('models/', '')
                 
                 # Filter chat models (Gemini models that support generateContent)
                 if hasattr(model, 'supported_generation_methods') and 'generateContent' in model.supported_generation_methods:
-                    chat_models[model_name] = {
-                        "model_name": model_name,
-                        "temperature": 0.1,
+                    chat_models[model_name_without_prefix] = {
+                        "model_name": model_name_without_prefix,
                         "max_output_tokens": 4096
                     }
                 
                 # Filter embedding models
-                elif (hasattr(model, 'supported_generation_methods') and 'embedContent' in model.supported_generation_methods) or 'embedding' in model_name.lower():
+                elif (hasattr(model, 'supported_generation_methods') and 'embedContent' in model.supported_generation_methods) or 'embedding' in model_name_without_prefix.lower():
                     # Set dimensions based on specific model
                     dimensions = 768  # Default for most Gemini embedding models
-                    if 'gemini-embedding-001' in model_name:
+                    if 'gemini-embedding-001' in model_name_without_prefix:
                         dimensions = 3072  # Actual dimension for gemini-embedding-001
-                    elif 'text-embedding-004' in model_name:
+                    elif 'text-embedding-004' in model_name_without_prefix:
                         dimensions = 768
-                    elif 'text-multilingual-embedding-002' in model_name:
+                    elif 'text-multilingual-embedding-002' in model_name_without_prefix:
                         dimensions = 768
                     
-                    embedding_models[model_name] = {
-                        "model_name": model_name,
+                    # For embedding models, keep the 'models/' prefix as required by GoogleGenerativeAIEmbeddings
+                    full_model_name = model.name  # This includes 'models/' prefix
+                    embedding_models[full_model_name] = {
+                        "model_name": full_model_name,
                         "dimensions": dimensions
                     }
             

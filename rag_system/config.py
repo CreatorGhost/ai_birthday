@@ -25,22 +25,18 @@ class ModelConfig:
             "chat_models": {
                 "gpt-4o": {
                     "model_name": "gpt-4o",
-                    "temperature": 0.1,
                     "max_tokens": 4096
                 },
                 "gpt-4o-mini": {
                     "model_name": "gpt-4o-mini",
-                    "temperature": 0.1,
                     "max_tokens": 4096
                 },
                 "gpt-4-turbo": {
                     "model_name": "gpt-4-turbo",
-                    "temperature": 0.1,
                     "max_tokens": 4096
                 },
                 "gpt-3.5-turbo": {
                     "model_name": "gpt-3.5-turbo",
-                    "temperature": 0.1,
                     "max_tokens": 4096
                 }
             },
@@ -84,16 +80,16 @@ class ModelConfig:
                 }
             },
             "embedding_models": {
-                "gemini-embedding-001": {
-                    "model_name": "gemini-embedding-001",
+                "models/gemini-embedding-001": {
+                    "model_name": "models/gemini-embedding-001",
                     "dimensions": 3072
                 },
-                "text-embedding-004": {
-                    "model_name": "text-embedding-004",
+                "models/text-embedding-004": {
+                    "model_name": "models/text-embedding-004",
                     "dimensions": 768
                 },
-                "text-multilingual-embedding-002": {
-                    "model_name": "text-multilingual-embedding-002",
+                "models/text-multilingual-embedding-002": {
+                    "model_name": "models/text-multilingual-embedding-002",
                     "dimensions": 768
                 }
             },
@@ -169,7 +165,7 @@ class ModelConfig:
     def _get_chat_model(self) -> str:
         """Get chat model from environment variable"""
         if self.llm_provider == LLMProvider.OPENAI:
-            return os.getenv('OPENAI_CHAT_MODEL', 'gpt-4o')
+            return os.getenv('OPENAI_CHAT_MODEL', 'gpt-5-2025-08-07')
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:
             return os.getenv('GOOGLE_CHAT_MODEL', 'gemini-1.5-pro')
         else:
@@ -180,7 +176,7 @@ class ModelConfig:
         if self.llm_provider == LLMProvider.OPENAI:
             return os.getenv('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:
-            return os.getenv('GOOGLE_EMBEDDING_MODEL', 'gemini-embedding-001')
+            return os.getenv('GOOGLE_EMBEDDING_MODEL', 'models/gemini-embedding-001')
         else:
             return 'text-embedding-3-small'  # Default fallback
     
@@ -230,8 +226,7 @@ class ModelConfig:
         if self.llm_provider == LLMProvider.OPENAI:
             return ChatOpenAI(
                 model=self.chat_model,
-                temperature=chat_config.get('temperature', 0.1),
-                max_tokens=chat_config.get('max_tokens', 4096),
+                max_tokens=chat_config.get('max_tokens', 10096),
                 api_key=os.getenv('OPENAI_API_KEY')
             )
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:

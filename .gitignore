@@ -4,7 +4,9 @@
 .env.development.local
 .env.test.local
 .env.production.local
-
+.rag_system/
+FAQ/
+rag_ready_faq/
 # Python
 __pycache__/
 *.py[cod]

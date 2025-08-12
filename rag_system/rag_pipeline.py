@@ -82,16 +82,14 @@ class RAGPipeline:
         self.embeddings = self.model_config.create_embedding_model()
         self.llm = self.model_config.create_chat_llm()
         
-        # LLM for document grading (using same model with temperature 0)
+        # LLM for document grading (using same model)
         chat_config = self.model_config.get_chat_model_config().copy()
-        chat_config['temperature'] = 0
         
         if self.model_config.llm_provider.value == 'openai':
             from langchain_openai import ChatOpenAI
             self.llm_json_mode = ChatOpenAI(
                 openai_api_key=os.getenv('OPENAI_API_KEY'),
                 model=chat_config["model_name"],
-                temperature=chat_config["temperature"],
                 max_tokens=chat_config.get("max_tokens")
             )
         else:  # Google Gemini
@@ -100,7 +98,7 @@ class RAGPipeline:
                 self.llm_json_mode = ChatGoogleGenerativeAI(
                     google_api_key=os.getenv('GOOGLE_API_KEY'),
                     model=chat_config["model_name"],
-                    temperature=chat_config["temperature"],
+                    temperature=0,
                     max_output_tokens=chat_config.get("max_output_tokens")
                 )
             except ImportError:
