@@ -492,17 +492,19 @@ class RAGPipeline:
         """Format current date/time information for LLM context"""
         dt_info = self._get_current_datetime_info()
         
-        context = f"""CURRENT DATE & TIME INFORMATION:
-📅 Date: {dt_info['formatted_date']}
-🕐 Time: {dt_info['formatted_time']} (UAE Time)
+        context = f"""CURRENT DATE & TIME INFORMATION (UAE TIMEZONE):
+📅 Date: {dt_info['formatted_date']} 
+🕐 Time: {dt_info['formatted_time']} (UAE Time - UTC+4)
 📝 Day Type: {dt_info['day_type'].title()}
 🗓️ Today is: {dt_info['day_name']}
 
-DAY CLASSIFICATION:
+UAE DAY CLASSIFICATION:
 - Weekdays: Monday to Thursday
 - Friday: Special day (part of weekend in UAE)
 - Weekend: Friday, Saturday, Sunday
 - Today is a {dt_info['day_type']}
+
+TIMEZONE NOTE: All times are in UAE Standard Time (UTC+4)
 """
         return context
     
@@ -1412,6 +1414,10 @@ Respond with only "YES" or "NO":""",
         location_needed = self._check_location_clarification_needed(question, context)
         is_leo_loona_question = self._is_leo_loona_question(question, context)
         
+        # Add standard opening hours if not in context (temporary solution)
+        if "opening" in question.lower() or "hours" in question.lower():
+            context += "\n\nSTANDARD OPENING HOURS:\n- Yas Mall: 10:00 AM - 10:00 PM (Daily)\n- Dalma Mall: 10:00 AM - 10:00 PM (Daily)\n- Festival City Mall: 10:00 AM - 10:00 PM (Daily)"
+        
         if not is_leo_loona_question:
             # Politely redirect non-Leo & Loona questions
             answer = """I'm sorry, but I'm specifically here to help with questions about Leo & Loona amusement park! 🎠 I'd love to tell you about our magical attractions, ticket prices, opening hours, birthday parties, or anything else related to Leo & Loona. What would you like to know about our wonderful park? ✨"""
@@ -1441,8 +1447,13 @@ Which one would you like to know about? ✨"""
                 "chat_history": chat_history
             }
 
-        # Fast prompt with Leo & Loona personality intact
+        # Get current date/time context for accurate responses
+        datetime_context = self._format_datetime_context()
+        
+        # Fast prompt with Leo & Loona personality and date/time awareness
         fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance.
+
+{datetime_context}
 
 IMPORTANT RESTRICTIONS:
 - ONLY answer questions about Leo & Loona amusement park
@@ -1457,6 +1468,12 @@ PERSONALITY & TONE:
 - Create anticipation and joy about visiting
 - Be informative first, wrapped in pleasant and engaging tone
 - Never pressure guests, only suggest offers if relevant
+
+IMPORTANT: Use the current date/time information above INTERNALLY to provide accurate answers. DO NOT mention the specific date/time to users unless they specifically ask "what time is it" or "what date is it". Instead, naturally reference:
+- "Today's hours" or "we're open until" (without stating the current time)
+- "Today's pricing" or "weekday/weekend rates" (without stating the day)
+- "We're currently open" or "we're closed right now" (without stating exact time)
+- Use phrases like "today", "right now", "current" instead of specific dates/times
 
 Context from Leo & Loona FAQ:
 {context}

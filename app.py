@@ -174,7 +174,6 @@ def main():
                 "👋 **Welcome to Leo & Loona!** I'm your friendly park host and I'm absolutely delighted you're here! ✨\n\n"
                 "Try asking me wonderful questions like:\n"
                 "• 'What are the magical experiences at Dalma Mall?'\n"
-                "• 'What are your opening hours today?'\n"
                 "• 'Tell me about your safety guidelines'\n"
                 "• 'Can I plan a birthday party for my little one?'"
             )
