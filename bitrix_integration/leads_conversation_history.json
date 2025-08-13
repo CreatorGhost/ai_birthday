@@ -1,0 +1,172 @@
+{
+  "timestamp": "2025-08-13T07:57:43.109922",
+  "total_leads_with_history": 3,
+  "leads": [
+    {
+      "lead_info": {
+        "id": "11",
+        "title": "Test",
+        "name": null,
+        "status": "CONVERTED",
+        "created_date": "2023-09-04 10:29:09"
+      },
+      "conversation_summary": {
+        "total_activities": 1,
+        "total_comments": 1
+      },
+      "activities": [
+        {
+          "id": "7",
+          "type_id": "6",
+          "type_name": "Other",
+          "subject": "send some info",
+          "description": "send some info",
+          "created": "2023-09-04 10:30:38",
+          "author_id": "29",
+          "communications": []
+        }
+      ],
+      "timeline_comments": [
+        {
+          "id": "167",
+          "comment": "asked to callback  later",
+          "created": "2023-09-04 10:30:16",
+          "author_id": "29",
+          "files": []
+        }
+      ]
+    },
+    {
+      "lead_info": {
+        "id": "25",
+        "title": "Lead #25",
+        "name": "",
+        "status": "CONVERTED",
+        "created_date": "2023-09-11 10:39:11"
+      },
+      "conversation_summary": {
+        "total_activities": 1,
+        "total_comments": 0
+      },
+      "activities": [
+        {
+          "id": "59",
+          "type_id": "6",
+          "type_name": "Other",
+          "subject": "Contact customer",
+          "description": "Contact customer",
+          "created": "2023-09-11 10:39:25",
+          "author_id": "35",
+          "communications": []
+        }
+      ],
+      "timeline_comments": []
+    },
+    {
+      "lead_info": {
+        "id": "41",
+        "title": "Yassine - Open Channel",
+        "name": "Yassine",
+        "status": "JUNK",
+        "created_date": "2023-09-14 13:47:06"
+      },
+      "conversation_summary": {
+        "total_activities": 4,
+        "total_comments": 0
+      },
+      "activities": [
+        {
+          "id": "1057",
+          "type_id": "2",
+          "type_name": "Meeting",
+          "subject": "Outgoing call to 971558505328",
+          "description": "",
+          "created": "2023-09-17 14:30:31",
+          "author_id": "33",
+          "communications": [
+            {
+              "ID": "1019",
+              "TYPE": "PHONE",
+              "VALUE": "971558505328",
+              "ENTITY_ID": "49",
+              "ENTITY_TYPE_ID": "3",
+              "ENTITY_SETTINGS": []
+            }
+          ]
+        },
+        {
+          "id": "863",
+          "type_id": "2",
+          "type_name": "Meeting",
+          "subject": "Lost call to 971558505328",
+          "description": "",
+          "created": "2023-09-17 10:01:13",
+          "author_id": "33",
+          "communications": [
+            {
+              "ID": "831",
+              "TYPE": "PHONE",
+              "VALUE": "971558505328",
+              "ENTITY_ID": "49",
+              "ENTITY_TYPE_ID": "3",
+              "ENTITY_SETTINGS": []
+            }
+          ]
+        },
+        {
+          "id": "405",
+          "type_id": "2",
+          "type_name": "Meeting",
+          "subject": "Lost call to 971558505328",
+          "description": "",
+          "created": "2023-09-16 13:21:09",
+          "author_id": "35",
+          "communications": [
+            {
+              "ID": "383",
+              "TYPE": "PHONE",
+              "VALUE": "971558505328",
+              "ENTITY_ID": "49",
+              "ENTITY_TYPE_ID": "3",
+              "ENTITY_SETTINGS": []
+            }
+          ]
+        },
+        {
+          "id": "107",
+          "type_id": "6",
+          "type_name": "Other",
+          "subject": "Open Channel chat: \"Yassine - Open Channel\" ([OLChat] WhatsApp)",
+          "description": null,
+          "created": "2023-09-14 13:47:07",
+          "author_id": "29",
+          "communications": [
+            {
+              "ID": "99",
+              "TYPE": "IM",
+              "VALUE": "imol|olchat_wa_connector_2|1|971558505328|47",
+              "ENTITY_ID": "49",
+              "ENTITY_TYPE_ID": "3",
+              "ENTITY_SETTINGS": []
+            },
+            {
+              "ID": "101",
+              "TYPE": "IM",
+              "VALUE": "imol|olchat_wa_connector_2|1|971558505328|47",
+              "ENTITY_ID": "41",
+              "ENTITY_TYPE_ID": "1",
+              "ENTITY_SETTINGS": {
+                "HONORIFIC": "",
+                "NAME": "Yassine",
+                "SECOND_NAME": "",
+                "LAST_NAME": "",
+                "LEAD_TITLE": "Yassine - Open Channel"
+              }
+            }
+          ]
+        }
+      ],
+      "timeline_comments": []
+    }
+  ]
+}

@@ -160,9 +160,38 @@ class RAGPipeline:
             input_variables=["question", "chat_history"]
         )
         
-        # Enhanced RAG generation prompt with location, date/time awareness and contextual safety messaging
+        # Enhanced RAG generation prompt with Leo & Loona personality (matching exact tone from markdown)
         self.rag_prompt = PromptTemplate(
-            template="""You are Leo & Loona's official FAQ assistant{location_context}.
+            template="""You are a warm, friendly, and knowledgeable virtual host of a magical family amusement park{location_context}. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance. You understand both the excitement of children and the practical questions of parents.
+
+            ## Role & Personality
+            You are a warm, friendly, and knowledgeable virtual host of a magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance. You understand both the excitement of children and the practical questions of parents.
+
+            ## Tone & Style
+            - Warm, joyful, and professional.  
+            - Use simple, friendly language without overcomplicating explanations.  
+            - Include light, natural compliments when appropriate (e.g., "Oh, Anna – what a beautiful name!").  
+            - Use a maximum of 2 emojis per message, and only when they enhance the warmth or excitement.  
+            - Create a sense of anticipation and joy ("Oh! That means you're planning to visit us — wonderful choice, we can't wait to see you!").  
+            - Be informative first, but wrap the information in a pleasant and engaging tone.
+
+            ## Special Behavior — Promotions & News
+            - When answering, if the topic or timing is relevant, *naturally* mention current offers, events, or news.
+            - Example: If someone asks about visiting now, you can say:  
+              "Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
+            - The offer should feel helpful and inviting, never pushy.
+
+            ## Goals
+            - Give accurate, clear, and helpful answers.  
+            - Make guests feel welcome and valued.  
+            - Encourage engagement with current offers/events.
+
+            ## Restrictions
+            - Never overuse emojis or exclamation marks.  
+            - Avoid generic or robotic responses — always add a touch of personality.  
+            - Do not pressure the guest into offers; only suggest them if relevant.
+            - ONLY answer questions about Leo & Loona amusement park (locations, pricing, hours, safety, activities, bookings, etc.)
+            - If asked about anything NOT related to Leo & Loona, politely redirect: "I'm here to help with questions about Leo & Loona! Is there anything you'd like to know about our magical play areas?"
             
             {datetime_context}
             
@@ -174,46 +203,52 @@ class RAGPipeline:
             Question: {question}
             
             INSTRUCTIONS:
-            1. USE THE INFORMATION FROM THE RETRIEVED DOCUMENTS to answer the question
-            2. UNDERSTAND DATE/TIME CONTEXT:
+            1. FIRST check if the question is about Leo & Loona - if not, politely redirect
+            2. USE THE INFORMATION FROM THE RETRIEVED DOCUMENTS to answer Leo & Loona questions
+            3. ALWAYS reply as a warm, welcoming, and joyful park host
+            4. Provide clear, useful information, sprinkle in warmth and compliments where natural
+            5. Gently inform guests about current events or offers when relevant (like Educational Months)
+            6. UNDERSTAND DATE/TIME CONTEXT:
                - "Today" refers to the current date and day shown above
                - "Tonight" refers to this evening/night
                - "This weekend" refers to the upcoming Friday-Sunday
                - Use current day type (weekday/friday/weekend) to provide accurate hours
-            3. Include safety supervision requirements ONLY when the question is about:
+            7. Include safety supervision requirements ONLY when the question is about:
                - Safety rules, park rules, or safety procedures
                - Age restrictions or child activities
                - Play area access or activities
                - When safety information is directly relevant to the question
-            4. If location is "General", provide comprehensive information from all available locations, clearly noting when information varies by location
-            5. If location is specific (Dalma Mall, Yas Mall, Festival City), focus on that location's information
-            6. If some specific details are missing, provide what information IS available from the documents
-            7. Be helpful and use ALL relevant information from the context
-            8. Keep responses informative but friendly
-            9. Don't say you don't know if the documents contain relevant information
-            10. For safety-related questions, emphasize: "Adult supervision is required at all times for children's safety"
-            11. When providing hours, specify if they apply to "today" or the specific day type
+            8. If location is "General", provide comprehensive information from all available locations, clearly noting when information varies by location
+            9. If location is specific (Dalma Mall, Yas Mall, Festival City), focus on that location's information
+            10. Express genuine excitement about their visit plans: "Oh! That means you're planning to visit us — wonderful choice, we can't wait to see you!"
+            11. For safety-related questions, emphasize with warmth: "Adult supervision is required at all times for children's safety"
+            12. Never use more than 2 emojis or excessive exclamation marks
+            13. When you detect names in conversation, compliment them naturally: "Oh, [Name] – what a beautiful name!"
             
-            Answer:""",
+            Answer as Leo & Loona's warm, welcoming park host following the exact tone and style described above:""",
             input_variables=["context", "question", "chat_history", "location", "enhanced_context", "datetime_context", "location_context"]
         )
         
-        # Location clarification prompt (date-aware)
+        # Location clarification prompt with Leo & Loona personality (matching exact tone from markdown)
         self.location_clarification_prompt = PromptTemplate(
-            template="""I'd be happy to help you with information about Leo & Loona! 
+            template="""Oh! So you're planning to visit us — that's wonderful! 🎉 I'd be delighted to help you with information about Leo & Loona!
             
             {datetime_context}
             
-            To provide you with accurate details, could you please let me know which location you're asking about?
+            To give you the most accurate details, could you please let me know which of our magical locations you're asking about?
             
-            🏢 Our locations:
+            🏢 Our Leo & Loona locations:
             • **Dalma Mall** (Abu Dhabi)
-            • **Yas Mall** (Abu Dhabi)
+            • **Yas Mall** (Abu Dhabi) 
             • **Festival City** (Dubai)
             
-            Each location may have different pricing, hours, and specific services available.
+            Each location is special in its own way, and some details like pricing and hours may vary.
             
-            Your question: {question}""",
+            Your question: "{question}"
+            
+            By the way, we're currently celebrating **Educational Months** — would you like me to send you the daily schedule so you can plan ahead?
+            
+            We can't wait to welcome you to Leo & Loona! ✨""",
             input_variables=["question", "datetime_context"]
         )
         
@@ -268,27 +303,24 @@ class RAGPipeline:
             input_variables=["question", "location", "documents_summary"]
         )
         
-        # Human escalation prompt
+        # Human escalation prompt with Leo & Loona warmth (matching exact tone from markdown)
         self.human_escalation_prompt = PromptTemplate(
-            template="""I don't have complete information to fully answer your question about {location}.
+            template="""Oh! I wish I had more detailed information to fully answer your wonderful question about {location}! 🎉
             
-            For accurate and detailed information, I'd recommend contacting our {location} team directly:
+            For the most accurate and up-to-date details, I'd love to connect you with our amazing {location} team directly:
             
-            📞 **Contact Information:**
-            - For bookings and detailed pricing
-            - For group events and parties
-            - For specific availability questions
-            
-            🕐 **Our team can help with:**
-            - Exact current pricing (including weekday rates)
-            - Workshop schedules and costs
-            - Group booking arrangements
-            - Special dietary accommodations
-            - Real-time availability
+            📞 **Our friendly team can help with:**
+            - Exact current pricing and special rates
+            - Booking arrangements and availability
+            - Group events and magical birthday parties
+            - Workshop schedules and special activities
+            - Any specific accommodations you might need
             
             Your question: "{question}"
             
-            Is there anything else I can help you with using the information I do have available?""",
+            Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?
+            
+            Is there anything else about Leo & Loona that I can help you with using the information I do have? We're always here to make your visit as magical as possible! ✨""",
             input_variables=["question", "location"]
         )
     
@@ -350,10 +382,10 @@ class RAGPipeline:
                 embedding=self.embeddings
             )
             
-            # Setup retriever
+            # Setup fast retriever with fewer documents for speed
             self.retriever = self.vector_store.as_retriever(
                 search_type="similarity",
-                search_kwargs={"k": 5}
+                search_kwargs={"k": 3}  # Reduced from 5 to 3 for speed
             )
             
             print("Loaded existing vector store")
@@ -389,6 +421,37 @@ class RAGPipeline:
             formatted_history.append(f"{role.capitalize()}: {content}")
         
         return "\n".join(formatted_history)
+    
+    def _detect_names_in_conversation(self, question: str, chat_history: List[dict]) -> str:
+        """Detect names mentioned in the conversation for natural compliments"""
+        import re
+        
+        # Common name patterns - look for "my [relation] is/name is [Name]" or "daughter [Name]" etc.
+        name_patterns = [
+            r"my\s+(?:daughter|son|child|kid)\s+(?:is\s+)?(?:called\s+|named\s+)?([A-Z][a-z]+)",
+            r"(?:daughter|son|child|kid)\s+(?:is\s+)?(?:called\s+|named\s+)?([A-Z][a-z]+)",
+            r"(?:name\s+is|called|named)\s+([A-Z][a-z]+)",
+            r"my\s+name\s+is\s+([A-Z][a-z]+)",
+            r"I'm\s+([A-Z][a-z]+)",
+            r"this\s+is\s+([A-Z][a-z]+)"
+        ]
+        
+        # Check current question and recent chat history
+        all_text = question + " "
+        for msg in chat_history[-3:]:  # Check last 3 messages
+            if msg.get("role") == "user":
+                all_text += msg.get("content", "") + " "
+        
+        detected_names = []
+        for pattern in name_patterns:
+            matches = re.findall(pattern, all_text, re.IGNORECASE)
+            for match in matches:
+                if match and len(match) > 1 and match.isalpha():  # Valid name
+                    detected_names.append(match.title())
+        
+        # Return the most recent unique name
+        unique_names = list(dict.fromkeys(detected_names))  # Remove duplicates while preserving order
+        return unique_names[-1] if unique_names else None
     
     def _get_current_datetime_info(self) -> dict:
         """Get comprehensive current date/time information"""
@@ -982,6 +1045,9 @@ Please let us know which location you're interested in!"""
         enhanced_context = state.get("enhanced_context", "")
         loop_step = state.get("loop_step", 0)
         
+        # Detect names for natural compliments
+        detected_name = self._detect_names_in_conversation(question, chat_history)
+        
         # Format documents for context
         context = self._format_docs(documents)
         
@@ -997,10 +1063,15 @@ Please let us know which location you're interested in!"""
         else:
             location_context = f" for {location}"
         
+        # Add name context if detected
+        name_context = ""
+        if detected_name:
+            name_context = f"\n\nNAME DETECTED: {detected_name} - Remember to compliment this name naturally if appropriate (e.g., 'Oh, {detected_name} – what a beautiful name!')."
+        
         # Generate answer using enhanced RAG chain
         rag_chain = self.rag_prompt | self.llm | StrOutputParser()
         generation = rag_chain.invoke({
-            "context": context,
+            "context": context + name_context,
             "question": question,
             "chat_history": chat_history_str,
             "location": location,
@@ -1032,6 +1103,9 @@ Please let us know which location you're interested in!"""
         # Simple location detection from question
         location = self._detect_location_simple(question)
         
+        # Detect names for natural compliments
+        detected_name = self._detect_names_in_conversation(question, chat_history)
+        
         # Format documents for context
         context = self._format_docs(documents)
         
@@ -1052,9 +1126,34 @@ Please let us know which location you're interested in!"""
         if any(keyword in question.lower() for keyword in ['safety', 'rule', 'supervision', 'age', 'child']):
             enhanced_context += "SAFETY: Adult supervision is required at all times\n"
         
-        # Generate answer using simplified prompt
+        # Add name context if detected
+        name_context = ""
+        if detected_name:
+            name_context = f"\n\nNAME DETECTED: {detected_name} - Remember to compliment this name naturally if appropriate (e.g., 'Oh, {detected_name} – what a beautiful name!')."
+        
+        # Generate answer using simplified prompt with Leo & Loona personality (matching exact tone from markdown)
         simplified_prompt = PromptTemplate(
-            template="""You are Leo & Loona's FAQ assistant{location_context}.
+            template="""You are a warm, friendly, and knowledgeable virtual host of a magical family amusement park{location_context}. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance. You understand both the excitement of children and the practical questions of parents.
+
+            ## Tone & Style
+            - Warm, joyful, and professional.  
+            - Use simple, friendly language without overcomplicating explanations.  
+            - Include light, natural compliments when appropriate (e.g., "Oh, Anna – what a beautiful name!").  
+            - Use a maximum of 2 emojis per message, and only when they enhance the warmth or excitement.  
+            - Create a sense of anticipation and joy ("Oh! That means you're planning to visit us — wonderful choice, we can't wait to see you!").  
+            - Be informative first, but wrap the information in a pleasant and engaging tone.
+
+            ## Special Behavior — Promotions & News
+            - When answering, if the topic or timing is relevant, *naturally* mention current offers, events, or news.
+            - Example: If someone asks about visiting now, you can say:  
+              "Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
+            - The offer should feel helpful and inviting, never pushy.
+            
+            ## Restrictions
+            - Never overuse emojis or exclamation marks.  
+            - Avoid generic or robotic responses — always add a touch of personality.  
+            - Do not pressure the guest into offers; only suggest them if relevant.
+            - ONLY answer questions about Leo & Loona. For off-topic questions, politely redirect: "I'm here to help with questions about Leo & Loona! Is there anything you'd like to know about our magical play areas?"
             
             {datetime_context}
             
@@ -1063,19 +1162,24 @@ Please let us know which location you're interested in!"""
             Question: {question}
             
             Instructions:
-            1. Answer using the retrieved information
-            2. Be helpful and friendly
-            3. If location is "General", provide comprehensive information from all locations
-            4. Include safety reminders only when relevant to the question
-            5. Use current date/time context when relevant
+            1. FIRST check if question is about Leo & Loona - if not, politely redirect
+            2. Answer using retrieved information with warm, enthusiastic tone exactly as described above
+            3. Always reply as a warm, welcoming, and joyful park host
+            4. Provide clear, useful information, sprinkle in warmth and compliments where natural
+            5. Gently inform guests about current events or offers when relevant (like Educational Months)
+            6. If location is "General", provide comprehensive information from all locations
+            7. Include safety reminders only when relevant: "Adult supervision is required at all times for children's safety"
+            8. Use current date/time context when relevant
+            9. Express excitement about their visit plans: "Oh! That means you're planning to visit us — wonderful choice, we can't wait to see you!"
+            10. When you detect names, compliment them naturally: "Oh, [Name] – what a beautiful name!"
             
-            Answer:""",
+            Answer as Leo & Loona's welcoming park host following the exact tone and personality described above:""",
             input_variables=["context", "question", "chat_history", "datetime_context", "location_context"]
         )
         
         rag_chain = simplified_prompt | self.llm | StrOutputParser()
         generation = rag_chain.invoke({
-            "context": context,
+            "context": context + name_context,
             "question": question,
             "chat_history": chat_history_str,
             "datetime_context": datetime_context,
@@ -1258,41 +1362,190 @@ Respond with only "YES" or "NO":""",
             return "enhance_context"
     
     def setup_graph(self):
-        """Setup the simplified LangGraph workflow"""
+        """Setup the ultra-fast RAG workflow with minimal steps"""
         if not self.retriever:
             raise ValueError("Vector store and retriever must be initialized first")
         
-        # Create the simplified graph with only essential nodes
+        # Create the fastest possible graph with minimal nodes
         workflow = StateGraph(RAGState)
         
-        # Add only essential nodes
-        workflow.add_node("retrieve", self.retrieve_documents)
-        workflow.add_node("generate", self.generate_simplified_answer)
-        workflow.add_node("clarification", self.generate_clarification)
+        # Add only essential nodes - removed grading and complex routing
+        workflow.add_node("retrieve_and_generate", self.fast_retrieve_and_generate)
         
-        # Define the simplified workflow
-        # Start with retrieval
-        workflow.add_edge(START, "retrieve")
-        
-        # Route after retrieval: either generate answer or ask for clarification
-        workflow.add_conditional_edges(
-            "retrieve",
-            self.route_after_retrieval,
-            {
-                "generate": "generate",
-                "clarification": "clarification"
-            }
-        )
-        
-        # Both generate and clarification end the conversation
-        workflow.add_edge("generate", END)
-        workflow.add_edge("clarification", END)
+        # Define the ultra-simple workflow
+        # Single step: retrieve and generate immediately
+        workflow.add_edge(START, "retrieve_and_generate")
+        workflow.add_edge("retrieve_and_generate", END)
         
         # Compile the graph
         self.graph = workflow.compile()
         
-        print("Simplified LangGraph RAG workflow setup complete")
-        print("Flow: retrieve -> [generate | clarification] -> END")
+        print("Ultra-fast RAG workflow setup complete")
+        print("Flow: retrieve_and_generate -> END")
+    
+    def fast_retrieve_and_generate(self, state: RAGState) -> RAGState:
+        """
+        Ultra-fast combined retrieval and generation in one step
+        Eliminates document grading and complex processing for speed
+        """
+        print("---FAST RETRIEVE AND GENERATE---")
+        question = state["question"]
+        chat_history = state.get("chat_history", [])
+        
+        # Fast retrieval with fewer documents for speed
+        documents = self.retriever.invoke(question)
+        print(f"📚 Retrieved {len(documents)} documents")
+        
+        # Take only top 3 most relevant documents for speed
+        top_documents = documents[:3]
+        
+        # Quick format documents
+        context = "\n\n".join(doc.page_content for doc in top_documents)
+        
+        # Simple chat history formatting (last 3 messages only)
+        chat_context = ""
+        if chat_history:
+            recent_messages = chat_history[-3:]
+            chat_context = "\n".join([f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in recent_messages])
+        
+        # Check if question is about Leo & Loona and detect location
+        location_needed = self._check_location_clarification_needed(question, context)
+        is_leo_loona_question = self._is_leo_loona_question(question, context)
+        
+        if not is_leo_loona_question:
+            # Politely redirect non-Leo & Loona questions
+            answer = """I'm sorry, but I'm specifically here to help with questions about Leo & Loona amusement park! 🎠 I'd love to tell you about our magical attractions, ticket prices, opening hours, birthday parties, or anything else related to Leo & Loona. What would you like to know about our wonderful park? ✨"""
+            return {
+                "generation": answer,
+                "source_documents": [],
+                "documents": [],
+                "question": question,
+                "chat_history": chat_history
+            }
+        
+        if location_needed:
+            # Ask for location clarification
+            answer = """I'd be happy to help you with that! 😊 Leo & Loona has magical locations at different malls. Could you please let me know which location you're asking about?
+
+Our Leo & Loona parks are located at:
+🎪 **Dalma Mall** (Abu Dhabi)
+🎪 **Yas Mall** (Abu Dhabi)  
+🎪 **Festival City Mall** (Dubai)
+
+Which one would you like to know about? ✨"""
+            return {
+                "generation": answer,
+                "source_documents": top_documents,
+                "documents": top_documents,
+                "question": question,
+                "chat_history": chat_history
+            }
+
+        # Fast prompt with Leo & Loona personality intact
+        fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance.
+
+IMPORTANT RESTRICTIONS:
+- ONLY answer questions about Leo & Loona amusement park
+- DO NOT answer questions about Hello Park, other parks, or unrelated topics
+- If asked about non-Leo & Loona topics, politely redirect to Leo & Loona
+
+PERSONALITY & TONE:
+- Warm, joyful, and professional
+- Use simple, friendly language  
+- Include light, natural compliments when appropriate (e.g., "what a beautiful name!")
+- Use maximum 2 emojis per message, only when they enhance warmth
+- Create anticipation and joy about visiting
+- Be informative first, wrapped in pleasant and engaging tone
+- Never pressure guests, only suggest offers if relevant
+
+Context from Leo & Loona FAQ:
+{context}
+
+Recent conversation:
+{chat_context}
+
+Question: {question}
+
+Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
+        
+        # Generate response quickly
+        response = self.llm.invoke([HumanMessage(content=fast_prompt)])
+        answer = response.content
+        
+        return {
+            "generation": answer,
+            "source_documents": top_documents,
+            "documents": top_documents,
+            "question": question,
+            "chat_history": chat_history
+        }
+    
+    def _is_leo_loona_question(self, question: str, context: str) -> bool:
+        """
+        Fast check if question is about Leo & Loona
+        """
+        question_lower = question.lower()
+        context_lower = context.lower()
+        
+        # Leo & Loona indicators
+        leo_loona_keywords = [
+            "leo", "loona", "leo & loona", "leo and loona",
+            "amusement park", "theme park", "family park"
+        ]
+        
+        # Non-Leo & Loona indicators (Hello Park, etc.)
+        other_park_keywords = [
+            "hello park", "hello world", "other park", "different park"
+        ]
+        
+        # General non-park topics
+        general_topics = [
+            "weather", "politics", "news", "programming", "cooking",
+            "sports", "movies", "music", "school", "work", "health",
+            "travel", "hotel", "restaurant", "shopping mall"
+        ]
+        
+        # Check for non-Leo & Loona content
+        for keyword in other_park_keywords + general_topics:
+            if keyword in question_lower:
+                return False
+        
+        # Check for Leo & Loona content in question or context
+        for keyword in leo_loona_keywords:
+            if keyword in question_lower or keyword in context_lower:
+                return True
+        
+        # If context mentions Leo & Loona, assume it's related
+        if "leo" in context_lower or "loona" in context_lower:
+            return True
+            
+        # Default to True for ambiguous cases (let the LLM handle it)
+        return True
+    
+    def _check_location_clarification_needed(self, question: str, context: str) -> bool:
+        """
+        Fast check if location clarification is needed
+        """
+        question_lower = question.lower()
+        
+        # Location-specific keywords that need clarification
+        location_keywords = [
+            "hours", "opening", "closing", "address", "location", "phone",
+            "contact", "directions", "parking", "nearby", "mall"
+        ]
+        
+        # Check if question mentions location keywords
+        needs_location = any(keyword in question_lower for keyword in location_keywords)
+        
+        if not needs_location:
+            return False
+        
+        # Check if location is already specified
+        location_names = ["dalma", "yas", "festival", "abu dhabi", "dubai"]
+        has_location = any(location in question_lower for location in location_names)
+        
+        # Need clarification if asking about location-specific info without specifying location
+        return needs_location and not has_location
     
     def answer_question(self, question: str, chat_history: List[dict] = None) -> dict:
         """

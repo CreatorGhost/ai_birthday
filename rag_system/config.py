@@ -165,18 +165,18 @@ class ModelConfig:
     def _get_chat_model(self) -> str:
         """Get chat model from environment variable"""
         if self.llm_provider == LLMProvider.OPENAI:
-            return os.getenv('OPENAI_CHAT_MODEL', 'gpt-5-2025-08-07')
+            return os.getenv('OPENAI_CHAT_MODEL', 'gpt-4o-mini')  # Faster, cheaper model
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:
-            return os.getenv('GOOGLE_CHAT_MODEL', 'gemini-1.5-pro')
+            return os.getenv('GOOGLE_CHAT_MODEL', 'gemini-1.5-flash')  # Faster flash model
         else:
-            return 'gpt-4o'  # Default fallback
+            return 'gpt-4o-mini'  # Default fallback
     
     def _get_embedding_model(self) -> str:
         """Get embedding model from environment variable"""
         if self.llm_provider == LLMProvider.OPENAI:
-            return os.getenv('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')
+            return os.getenv('OPENAI_EMBEDDING_MODEL', 'text-embedding-3-small')  # Already optimized
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:
-            return os.getenv('GOOGLE_EMBEDDING_MODEL', 'models/gemini-embedding-001')
+            return os.getenv('GOOGLE_EMBEDDING_MODEL', 'models/text-embedding-004')  # Faster 768-dim model
         else:
             return 'text-embedding-3-small'  # Default fallback
     
@@ -226,8 +226,9 @@ class ModelConfig:
         if self.llm_provider == LLMProvider.OPENAI:
             return ChatOpenAI(
                 model=self.chat_model,
-                max_tokens=chat_config.get('max_tokens', 10096),
+                max_tokens=chat_config.get('max_tokens', 1024),  # Reduced for faster responses
                 api_key=os.getenv('OPENAI_API_KEY')
+                # Note: gpt-4o-mini doesn't support custom temperature, using default
             )
         elif self.llm_provider == LLMProvider.GOOGLE_GEMINI:
             try:
@@ -235,7 +236,7 @@ class ModelConfig:
                 return ChatGoogleGenerativeAI(
                     model=self.chat_model,
                     temperature=chat_config.get('temperature', 0.1),
-                    max_output_tokens=chat_config.get('max_output_tokens', 4096),
+                    max_output_tokens=chat_config.get('max_output_tokens', 1024),  # Reduced for speed
                     google_api_key=os.getenv('GOOGLE_API_KEY')
                 )
             except ImportError:

@@ -150,6 +150,166 @@ class BitrixClient:
         if not select_fields:
             select_fields = ['ID', 'TITLE', 'OPPORTUNITY', 'STAGE_ID', 'DATE_CREATE', 'COMMENTS']
         return self.get_all_data('crm.deal.list', select_fields, filter_params)
+    
+    def create_lead(self, lead_data: Dict[str, Any], register_event: bool = True) -> Dict[str, Any]:
+        """
+        Create a new lead in Bitrix24.
+        
+        Args:
+            lead_data: Dictionary containing lead fields
+            register_event: Whether to register the event of adding a lead
+            
+        Returns:
+            API response with created lead ID
+            
+        Example:
+            lead_data = {
+                'TITLE': 'New Lead Title',
+                'NAME': 'John',
+                'LAST_NAME': 'Doe', 
+                'STATUS_ID': 'NEW',
+                'PHONE': [{'VALUE': '+1234567890', 'VALUE_TYPE': 'WORK'}],
+                'EMAIL': [{'VALUE': 'john@example.com', 'VALUE_TYPE': 'WORK'}],
+                'COMMENTS': 'Lead created via API'
+            }
+        """
+        params = {
+            'fields': lead_data,
+            'params': {
+                'REGISTER_SONET_EVENT': 'Y' if register_event else 'N'
+            }
+        }
+        
+        response = self._make_request('crm.lead.add', params)
+        return response
+    
+    def update_lead(self, lead_id: int, lead_data: Dict[str, Any], register_event: bool = True) -> Dict[str, Any]:
+        """
+        Update an existing lead in Bitrix24.
+        
+        Args:
+            lead_id: ID of the lead to update
+            lead_data: Dictionary containing fields to update
+            register_event: Whether to register the event of updating a lead
+            
+        Returns:
+            API response confirming update
+            
+        Example:
+            lead_data = {
+                'STATUS_ID': 'IN_PROCESS',
+                'COMMENTS': 'Updated lead status',
+                'OPPORTUNITY': 5000
+            }
+        """
+        params = {
+            'id': lead_id,
+            'fields': lead_data,
+            'params': {
+                'REGISTER_SONET_EVENT': 'Y' if register_event else 'N'
+            }
+        }
+        
+        response = self._make_request('crm.lead.update', params)
+        return response
+    
+    def get_lead_by_id(self, lead_id: int) -> Dict[str, Any]:
+        """
+        Get a specific lead by its ID.
+        
+        Args:
+            lead_id: ID of the lead to retrieve
+            
+        Returns:
+            Lead data dictionary
+        """
+        params = {'id': lead_id}
+        response = self._make_request('crm.lead.get', params)
+        return response
+    
+    def get_lead_fields(self) -> Dict[str, Any]:
+        """
+        Get available lead fields and their descriptions.
+        
+        Returns:
+            Dictionary of available lead fields with their properties
+        """
+        response = self._make_request('crm.lead.fields')
+        return response
+    
+    def get_lead_activities(self, lead_id, activity_types=None):
+        """
+        Get activities (calls, emails, meetings, etc.) for a specific lead
+        
+        Args:
+            lead_id (int): Lead ID
+            activity_types (list, optional): Filter by activity types (1=call, 2=meeting, 4=email, etc.)
+        
+        Returns:
+            dict: Response containing lead activities
+        """
+        filter_params = {
+            'OWNER_TYPE_ID': 1,  # 1 = Lead
+            'OWNER_ID': lead_id
+        }
+        
+        if activity_types:
+            filter_params['TYPE_ID'] = activity_types
+        
+        params = {
+            'filter': filter_params,
+            'select': ['*', 'COMMUNICATIONS'],
+            'order': {'ID': 'DESC'}
+        }
+        
+        return self._make_request('crm.activity.list', params)
+    
+    def get_lead_timeline_comments(self, lead_id):
+        """
+        Get timeline comments for a specific lead
+        
+        Args:
+            lead_id (int): Lead ID
+        
+        Returns:
+            dict: Response containing timeline comments
+        """
+        params = {
+            'filter': {
+                'ENTITY_ID': lead_id,
+                'ENTITY_TYPE': 'lead'
+            },
+            'select': ['ID', 'COMMENT', 'CREATED', 'AUTHOR_ID', 'FILES'],
+            'order': {'ID': 'DESC'}
+        }
+        
+        return self._make_request('crm.timeline.comment.list', params)
+    
+    def get_lead_conversation_history(self, lead_id):
+        """
+        Get complete conversation history for a lead (activities + timeline comments)
+        
+        Args:
+            lead_id (int): Lead ID
+        
+        Returns:
+            dict: Combined conversation history with activities and comments
+        """
+        # Get activities (calls, emails, meetings, etc.)
+        activities_response = self.get_lead_activities(lead_id)
+        
+        # Get timeline comments
+        comments_response = self.get_lead_timeline_comments(lead_id)
+        
+        conversation_history = {
+            'lead_id': lead_id,
+            'activities': activities_response.get('result', []),
+            'timeline_comments': comments_response.get('result', []),
+            'total_activities': len(activities_response.get('result', [])),
+            'total_comments': len(comments_response.get('result', []))
+        }
+        
+        return conversation_history
 
 
 if __name__ == "__main__":
@@ -195,6 +355,92 @@ if __name__ == "__main__":
                     print(f"      Sample deal: ID={deals[0].get('ID')}, Title={deals[0].get('TITLE', 'N/A')}")
             except Exception as e:
                 print(f"   ❌ Deals access failed: {str(e)}")
+            
+            print("\n4. Testing lead creation and update...")
+            
+            # Test lead creation
+            print("   Testing lead creation...")
+            try:
+                test_lead_data = {
+                    'TITLE': 'Test Lead - API Integration',
+                    'NAME': 'Test',
+                    'LAST_NAME': 'User',
+                    'STATUS_ID': 'NEW',
+                    'PHONE': [{'VALUE': '+1234567890', 'VALUE_TYPE': 'WORK'}],
+                    'EMAIL': [{'VALUE': 'test@example.com', 'VALUE_TYPE': 'WORK'}],
+                    'COMMENTS': 'Test lead created via API integration test',
+                    'SOURCE_ID': 'OTHER'
+                }
+                
+                create_response = client.create_lead(test_lead_data)
+                if 'result' in create_response:
+                    new_lead_id = create_response['result']
+                    print(f"   ✅ Lead created successfully! ID: {new_lead_id}")
+                    
+                    # Test lead update
+                    print("   Testing lead update...")
+                    update_data = {
+                        'STATUS_ID': 'IN_PROCESS',
+                        'COMMENTS': 'Lead updated via API - test successful',
+                        'OPPORTUNITY': 1000
+                    }
+                    
+                    update_response = client.update_lead(new_lead_id, update_data)
+                    if 'result' in update_response and update_response['result']:
+                        print(f"   ✅ Lead updated successfully!")
+                        
+                        # Get the updated lead to verify changes
+                        updated_lead = client.get_lead_by_id(new_lead_id)
+                        if 'result' in updated_lead:
+                            lead_info = updated_lead['result']
+                            print(f"      Updated lead status: {lead_info.get('STATUS_ID')}")
+                            print(f"      Updated opportunity: {lead_info.get('OPPORTUNITY')}")
+                    else:
+                        print(f"   ❌ Lead update failed: {update_response}")
+                else:
+                    print(f"   ❌ Lead creation failed: {create_response}")
+                    
+            except Exception as e:
+                print(f"   ❌ Lead creation/update test failed: {str(e)}")
+            
+            print("\n5. Testing conversation history functionality...")
+            
+            # Test conversation history with existing leads
+            print("   Testing conversation history retrieval...")
+            try:
+                if leads:  # Use leads from earlier test
+                    test_lead = leads[0]
+                    test_lead_id = test_lead['ID']
+                    print(f"   Testing with Lead ID: {test_lead_id} - {test_lead.get('TITLE', 'N/A')}")
+                    
+                    # Get conversation history
+                    conversation = client.get_lead_conversation_history(test_lead_id)
+                    print(f"   ✅ Conversation history retrieved:")
+                    print(f"      Total Activities: {conversation['total_activities']}")
+                    print(f"      Total Timeline Comments: {conversation['total_comments']}")
+                    
+                    # Show some activity details if available
+                    if conversation['activities']:
+                        print("      Recent Activities:")
+                        for i, activity in enumerate(conversation['activities'][:2]):  # Show first 2
+                            activity_type = activity.get('TYPE_ID', 'Unknown')
+                            subject = activity.get('SUBJECT', 'No subject')
+                            created = activity.get('CREATED', 'Unknown date')
+                            print(f"        {i+1}. Type: {activity_type}, Subject: {subject[:50]}...")
+                    
+                    # Show some timeline comments if available
+                    if conversation['timeline_comments']:
+                        print("      Recent Timeline Comments:")
+                        for i, comment in enumerate(conversation['timeline_comments'][:2]):  # Show first 2
+                            comment_text = comment.get('COMMENT', 'No comment text')
+                            created = comment.get('CREATED', 'Unknown date')
+                            print(f"        {i+1}. Created: {created}")
+                            print(f"           Comment: {comment_text[:60]}...")
+                else:
+                    print("   ⚠️ No existing leads found to test conversation history")
+                    
+            except Exception as e:
+                print(f"   ❌ Conversation history test failed: {str(e)}")
             
             print("\n✅ Bitrix integration testing complete!")
         else:

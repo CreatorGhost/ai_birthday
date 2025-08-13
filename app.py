@@ -42,8 +42,8 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    st.title("🦁 Leo & Loona FAQ Assistant")
-    st.write("Ask questions about our play areas and get instant answers with enhanced location awareness!")
+    st.title("🦁 Leo & Loona Magical Assistant")
+    st.write("Welcome to our magical family amusement park! Ask me anything about Leo & Loona and I'll help make your visit absolutely wonderful! ✨")
     
     # Initialize session state
     if 'messages' not in st.session_state:
@@ -61,12 +61,12 @@ def main():
             if success:
                 st.session_state.rag_pipeline = rag_pipeline
                 st.session_state.documents_loaded = True
-                st.success("✅ FAQ system ready! You can now ask questions about Leo & Loona.")
+                st.success("✅ Your magical Leo & Loona assistant is ready! I can't wait to help you plan your visit! 🎉")
             else:
                 st.session_state.rag_pipeline = None
                 st.session_state.documents_loaded = False
                 st.error(f"❌ {error_msg}")
-                st.info("💡 Please use the sidebar options to load documents first.")
+                st.info("💡 Let me get ready to help you with Leo & Loona! Please check the sidebar options.")
     
     # Sidebar for configuration and manual controls
     st.sidebar.header("🔧 Configuration")
@@ -166,16 +166,17 @@ def main():
 
     # Main chat interface
     if hasattr(st.session_state, 'documents_loaded') and st.session_state.documents_loaded and st.session_state.rag_pipeline:
-        st.header("💬 Chat with Leo & Loona Assistant")
+        st.header("💬 Chat with Your Leo & Loona Host")
         
         # Show helpful tips for first-time users
         if not st.session_state.messages:
             st.info(
-                "👋 **Welcome!** I'm your Leo & Loona assistant. Try asking me:\n\n"
-                "• 'What are the prices at Dalma Mall?'\n"
-                "• 'What are the opening hours?'\n"
-                "• 'Tell me about your safety rules'\n"
-                "• 'Can I book a birthday party?'"
+                "👋 **Welcome to Leo & Loona!** I'm your friendly park host and I'm absolutely delighted you're here! ✨\n\n"
+                "Try asking me wonderful questions like:\n"
+                "• 'What are the magical experiences at Dalma Mall?'\n"
+                "• 'What are your opening hours today?'\n"
+                "• 'Tell me about your safety guidelines'\n"
+                "• 'Can I plan a birthday party for my little one?'"
             )
         
         # Display chat messages
@@ -184,7 +185,7 @@ def main():
                 st.markdown(message["content"])
         
         # Chat input
-        if prompt := st.chat_input("Ask a question about Leo & Loona:"):
+        if prompt := st.chat_input("Ask me anything about our magical Leo & Loona park! 🎠"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
@@ -201,25 +202,17 @@ def main():
                     
                     response = result["answer"]
                     st.markdown(response)
-                    
-                    # Show source documents in an expander
-                    if result["source_documents"]:
-                        with st.expander("📚 Source Documents"):
-                            for i, doc in enumerate(result["source_documents"]):
-                                st.write(f"**Source {i+1}:** {doc.metadata.get('source', 'Unknown')}")
-                                st.write(doc.page_content[:300] + "..." if len(doc.page_content) > 300 else doc.page_content)
-                                st.divider()
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
 
         # Show usage tips in expandable section
-        with st.expander("💡 Tips for better answers"):
+        with st.expander("💡 Tips for the most magical experience"):
             st.write(
-                "• **Be specific about location**: Mention Dalma Mall, Yas Mall, or Festival City\n"
-                "• **Ask about specific topics**: Prices, hours, safety rules, bookings\n"
-                "• **Follow up questions**: I remember our conversation context\n"
-                "• **Need human help?**: I'll connect you when I can't fully answer"
+                "• **Tell me your location**: Mention Dalma Mall, Yas Mall, or Festival City for personalized info\n"
+                "• **Ask about anything Leo & Loona**: Magical activities, pricing, hours, safety, birthday parties\n"
+                "• **Follow up freely**: I remember our conversation and love chatting!\n"
+                "• **Need extra help?**: I'll happily connect you with our wonderful team when needed"
             )
     else:
         # System not ready - show status and help
@@ -227,19 +220,19 @@ def main():
         
         if hasattr(st.session_state, 'rag_pipeline') and not st.session_state.rag_pipeline:
             st.error(
-                "❌ **System Not Ready**\n\n"
-                "The FAQ system could not initialize. This might be due to:\n"
-                "• Missing API keys in .env file\n"
-                "• No existing vector store found\n"
-                "• Network connectivity issues\n\n"
-                "**Solutions:**\n"
-                "1. Check your .env file has the required API keys\n"
-                "2. Run document ingestion: `python ingest_documents.py`\n"
+                "❌ **Oh no! I'm having trouble getting ready!**\n\n"
+                "I'm so excited to help you with Leo & Loona, but something went wrong. This might be due to:\n"
+                "• Missing magical connection keys\n"
+                "• My knowledge base needs to be loaded\n"
+                "• Connection hiccups\n\n"
+                "**Let's fix this together:**\n"
+                "1. Check the technical configurations\n"
+                "2. Load the park information: `python ingest_documents.py`\n"
                 "3. Try the 'Reload System' button\n"
-                "4. Check Pinecone index exists with correct name"
+                "4. Make sure everything is properly connected"
             )
         else:
-            st.info("⏳ Please wait while the system initializes...")
+            st.info("⏳ I'm getting ready to welcome you to Leo & Loona! Just a moment... ✨")
 
 if __name__ == "__main__":
     main()
