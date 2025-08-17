@@ -211,8 +211,8 @@ class RAGPipeline:
             6. UNDERSTAND DATE/TIME CONTEXT:
                - "Today" refers to the current date and day shown above
                - "Tonight" refers to this evening/night
-               - "This weekend" refers to the upcoming Friday-Sunday
-               - Use current day type (weekday/friday/weekend) to provide accurate hours
+               - "This weekend" refers to the upcoming Saturday-Sunday
+               - Use current day type (weekday/weekend) to provide accurate hours
             7. Include safety supervision requirements ONLY when the question is about:
                - Safety rules, park rules, or safety procedures
                - Age restrictions or child activities
@@ -467,7 +467,7 @@ class RAGPipeline:
                       'July', 'August', 'September', 'October', 'November', 'December']
         
         weekday = now_uae.weekday()  # 0=Monday, 6=Sunday
-        is_weekend = weekday >= 5  # Saturday=5, Sunday=6
+        is_weekend = weekday >= 6  # Saturday=5, Sunday=6 - Changed to only include Sat/Sun
         is_friday = weekday == 4   # Friday=4
         
         return {
@@ -483,7 +483,7 @@ class RAGPipeline:
             'is_weekend': is_weekend,
             'is_friday': is_friday,
             'is_weekday': not is_weekend,
-            'day_type': 'weekend' if is_weekend else ('friday' if is_friday else 'weekday'),
+            'day_type': 'weekend' if is_weekend else 'weekday',
             'formatted_date': now_uae.strftime('%A, %B %d, %Y'),
             'formatted_time': now_uae.strftime('%I:%M %p'),
         }
@@ -499,9 +499,8 @@ class RAGPipeline:
 🗓️ Today is: {dt_info['day_name']}
 
 UAE DAY CLASSIFICATION:
-- Weekdays: Monday to Thursday
-- Friday: Special day (part of weekend in UAE)
-- Weekend: Friday, Saturday, Sunday
+- Weekdays: Monday to Friday
+- Weekend: Saturday, Sunday
 - Today is a {dt_info['day_type']}
 
 TIMEZONE NOTE: All times are in UAE Standard Time (UTC+4)
@@ -659,7 +658,7 @@ CURRENT DATE/TIME CONTEXT:
 - Today is {dt_info['day_name']}, {dt_info['formatted_date']}
 - Current time: {dt_info['formatted_time']} (UAE)
 - Day type: {dt_info['day_type']} 
-- Weekend in UAE: Friday, Saturday, Sunday
+- Weekend in UAE: Saturday, Sunday
 
 """
         
