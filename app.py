@@ -161,8 +161,30 @@ def main():
         "🛡️ **Safety First**\n"
         "Always includes supervision requirements\n\n"
         "🤖 **Smart Escalation**\n"
-        "Connects you to human agents when needed"
+        "Connects you to human agents when needed\n\n"
+        "👤 **User Tracking (NEW)**\n"
+        "Intelligently collects names and tracks conversations"
     )
+    
+    # User Information Panel (NEW)
+    st.sidebar.header("👤 User Information")
+    
+    # Initialize user info in session state
+    if 'user_info' not in st.session_state:
+        st.session_state.user_info = {
+            'phone': None,
+            'name': None,
+            'total_messages': 0,
+            'last_seen': None
+        }
+    
+    user_info = st.session_state.user_info
+    st.sidebar.write(f"**Phone:** {user_info.get('phone', 'Not assigned')}")
+    st.sidebar.write(f"**Name:** {user_info.get('name', 'Not collected')}")
+    st.sidebar.write(f"**Messages:** {user_info.get('total_messages', 0)}")
+    st.sidebar.write(f"**Last Seen:** {user_info.get('last_seen', 'Never')}")
+    
+
 
     # Main chat interface
     if hasattr(st.session_state, 'documents_loaded') and st.session_state.documents_loaded and st.session_state.rag_pipeline:
@@ -172,10 +194,7 @@ def main():
         if not st.session_state.messages:
             st.info(
                 "👋 **Welcome to Leo & Loona!** I'm your friendly park host and I'm absolutely delighted you're here! ✨\n\n"
-                "Try asking me wonderful questions like:\n"
-                "• 'What are the magical experiences at Dalma Mall?'\n"
-                "• 'Tell me about your safety guidelines'\n"
-                "• 'Can I plan a birthday party for my little one?'"
+                "Ask me anything about our magical parks and I'll help you get the information you need!"
             )
         
         # Display chat messages
@@ -201,17 +220,32 @@ def main():
                     
                     response = result["answer"]
                     st.markdown(response)
+                    
+                    # Update user information from RAG pipeline result (NEW)
+                    if 'user_info' in result:
+                        user_info_data = result['user_info']
+                        if user_info_data.get('phone'):
+                            st.session_state.user_info.update({
+                                'phone': user_info_data.get('phone', 'Not assigned'),
+                                'name': user_info_data.get('name', 'Not collected'),
+                                'total_messages': user_info_data.get('profile', {}).get('total_messages', 0),
+                                'last_seen': user_info_data.get('profile', {}).get('last_seen', 'Never')
+                            })
+                            
+                            # Update user info silently (no duplicate notifications)
+                            pass
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
 
+
+        
         # Show usage tips in expandable section
-        with st.expander("💡 Tips for the most magical experience"):
+        with st.expander("💡 Tips for the best experience"):
             st.write(
-                "• **Tell me your location**: Mention Dalma Mall, Yas Mall, or Festival City for personalized info\n"
-                "• **Ask about anything Leo & Loona**: Magical activities, pricing, hours, safety, birthday parties\n"
-                "• **Follow up freely**: I remember our conversation and love chatting!\n"
-                "• **Need extra help?**: I'll happily connect you with our wonderful team when needed"
+                "• **Ask any question**: I'll help with locations, pricing, hours, birthday parties, and more!\n"
+                "• **Mention your location**: Dalma Mall, Yas Mall, or Festival City for specific info\n"
+                "• **Feel free to chat**: I remember our conversation and love helping!"
             )
     else:
         # System not ready - show status and help

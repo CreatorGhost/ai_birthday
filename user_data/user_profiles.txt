@@ -1,0 +1,13 @@
+# User Profiles
+# Format: Phone: [phone] | Name: [name] | Last_Seen: [timestamp] | Total_Messages: [count]
+# This file tracks unique users and their information
+
+Phone: +971506676212 | Name: Unknown | Last_Seen: 2025-08-17 20:04:03 | Total_Messages: 1
+Phone: +971550701252 | Name: Unknown | Last_Seen: 2025-08-17 20:26:54 | Total_Messages: 1
+Phone: +971552825047 | Name: Unknown | Last_Seen: 2025-08-17 20:40:09 | Total_Messages: 1
+Phone: +971557358667 | Name: Unknown | Last_Seen: 2025-08-17 20:48:23 | Total_Messages: 1
+Phone: +971568553448 | Name: Aditya | Last_Seen: 2025-08-17 20:49:32 | Total_Messages: 2
+Phone: +971520325960 | Name: Unknown | Last_Seen: 2025-08-17 20:53:08 | Total_Messages: 1
+Phone: +971589639098 | Name: Aditya | Last_Seen: 2025-08-17 20:53:27 | Total_Messages: 1
+Phone: +971582668607 | Name: Aditya | Last_Seen: 2025-08-17 20:58:18 | Total_Messages: 3
+Phone: +971500702484 | Name: Aditya | Last_Seen: 2025-08-17 21:07:57 | Total_Messages: 3

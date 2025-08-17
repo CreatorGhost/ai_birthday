@@ -16,6 +16,7 @@ from langgraph.prebuilt import tools_condition
 from langchain_core.tools import tool
 
 from .config import ModelConfig
+from .user_tracker import UserTracker
 
 try:
     from pinecone import Pinecone, ServerlessSpec
@@ -42,6 +43,15 @@ class RAGState(TypedDict):
         confidence_score: Confidence score for answer completeness (0.0-1.0)
         needs_human_escalation: Whether human escalation is needed
         enhanced_context: Location-specific enhanced context
+        
+        # User Information Tracking
+        user_phone: str                   # Simulated phone number for testing
+        user_name: str                    # Extracted or provided user name
+        user_profile: dict                # Complete user profile from storage
+        name_extraction_result: dict      # Result of name extraction attempt
+        should_request_name: bool         # Whether to ask for name
+        name_request_message: str         # Generated name request message
+        conversation_logged: bool         # Whether conversation was logged
     """
     question: str
     chat_history: List[dict]
@@ -55,6 +65,15 @@ class RAGState(TypedDict):
     confidence_score: float
     needs_human_escalation: bool
     enhanced_context: str
+    
+    # User Information Tracking
+    user_phone: str
+    user_name: str
+    user_profile: dict
+    name_extraction_result: dict
+    should_request_name: bool
+    name_request_message: str
+    conversation_logged: bool
 
 class RAGPipeline:
     """Advanced RAG pipeline using LangGraph for complex AI agent workflows"""
@@ -81,6 +100,9 @@ class RAGPipeline:
         # Initialize embeddings and LLM using model configuration
         self.embeddings = self.model_config.create_embedding_model()
         self.llm = self.model_config.create_chat_llm()
+        
+        # Initialize user tracking for name collection and storage
+        self.user_tracker = UserTracker(self.llm)
         
         # LLM for document grading (using same model)
         chat_config = self.model_config.get_chat_model_config().copy()
@@ -1388,14 +1410,119 @@ Respond with only "YES" or "NO":""",
         """
         Ultra-fast combined retrieval and generation in one step
         Eliminates document grading and complex processing for speed
+        Now includes user information tracking and name collection
         """
-        print("---FAST RETRIEVE AND GENERATE---")
+
         question = state["question"]
         chat_history = state.get("chat_history", [])
         
+        # Initialize user tracking state if not present
+        user_phone = state.get("user_phone")
+        if not user_phone:
+            user_phone = self.user_tracker.generate_test_phone_number()
+            # Store phone in state for session consistency
+            state["user_phone"] = user_phone
+        
+        # Get or create user profile
+        user_profile = self.user_tracker.get_user_profile(user_phone)
+        
+        # Extract name from current message if possible
+        name_extraction = self.user_tracker.extract_name_from_message(question, chat_history)
+        
+        # Update user profile if name was found
+        if name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
+            extracted_name = name_extraction.get("extracted_name")
+            self.user_tracker.update_user_profile(user_phone, extracted_name)
+            user_profile["name"] = extracted_name
+        
+        # NEW: Handle first interaction immediately - ask for name
+        is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
+        is_name_response = self.user_tracker.is_name_response(question, chat_history)
+        
+        # Check if we should request name or handle name response
+        should_request_name = False
+        name_request_message = ""
+        personalized_intro = ""
+        
+        if is_first_interaction and not name_extraction.get("name_found"):
+            # First interaction without name - store question and ask for name politely
+            should_request_name = True
+            name_request_message = self.user_tracker.generate_name_request("polite_request")
+            # Store the original question for later
+            self.user_tracker.store_original_question(user_phone, question)
+            
+        elif name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
+            # Name was just provided - check if we need to answer stored question
+            extracted_name = name_extraction.get("extracted_name")
+            
+            # Always try to get stored question when name is provided
+            stored_question = self.user_tracker.get_stored_question(user_phone)
+            
+            if stored_question:
+                # Generate greeting + answer the original question
+                personalized_greeting = self.user_tracker.generate_personalized_greeting(extracted_name)
+                
+                # Answer the stored question with personalization
+                return self._answer_with_personalization(stored_question, personalized_greeting, user_phone, user_profile, chat_history, name_extraction)
+            else:
+                # No stored question, just greet
+                personalized_intro = f"Thank you, {extracted_name}! 😊 How can I help you with Leo & Loona today?"
+                
+                # Log the personalized intro response
+                self.user_tracker.log_conversation(user_phone, extracted_name, personalized_intro, is_user=False)
+                
+                return {
+                    "generation": personalized_intro,
+                    "source_documents": [],
+                    "documents": [],
+                    "question": question,
+                    "chat_history": chat_history,
+                    # User information state
+                    "user_phone": user_phone,
+                    "user_name": extracted_name,
+                    "user_profile": user_profile,
+                    "name_extraction_result": name_extraction,
+                    "should_request_name": False,
+                    "name_request_message": "",
+                    "conversation_logged": True
+                }
+            
+        elif not user_profile.get("name"):
+            # No name yet, check if we should ask (fallback for edge cases)
+            name_request_analysis = self.user_tracker.should_request_name(chat_history, question, user_profile)
+            should_request_name = name_request_analysis.get("should_ask", False)
+            if should_request_name:
+                approach = name_request_analysis.get("approach", "personalization")
+                name_request_message = self.user_tracker.generate_name_request(approach)
+        
+        # Log the conversation
+        self.user_tracker.log_conversation(user_phone, user_profile.get("name"), question, is_user=True)
+        self.user_tracker.update_user_profile(user_phone)  # Update message count and last seen
+        
+        # If we should request name for first interaction, return name request
+        if should_request_name and name_request_message and is_first_interaction:
+            # Return polite name request
+            self.user_tracker.log_conversation(user_phone, user_profile.get("name"), name_request_message, is_user=False)
+            
+            return {
+                "generation": name_request_message,
+                "source_documents": [],
+                "documents": [],
+                "question": question,
+                "chat_history": chat_history,
+                # User information state
+                "user_phone": user_phone,
+                "user_name": user_profile.get("name", ""),
+                "user_profile": user_profile,
+                "name_extraction_result": name_extraction,
+                "should_request_name": True,
+                "name_request_message": name_request_message,
+                "conversation_logged": True
+            }
+        
         # Fast retrieval with fewer documents for speed
         documents = self.retriever.invoke(question)
-        print(f"📚 Retrieved {len(documents)} documents")
+
         
         # Take only top 3 most relevant documents for speed
         top_documents = documents[:3]
@@ -1420,12 +1547,28 @@ Respond with only "YES" or "NO":""",
         if not is_leo_loona_question:
             # Politely redirect non-Leo & Loona questions
             answer = """I'm sorry, but I'm specifically here to help with questions about Leo & Loona amusement park! 🎠 I'd love to tell you about our magical attractions, ticket prices, opening hours, birthday parties, or anything else related to Leo & Loona. What would you like to know about our wonderful park? ✨"""
+            
+            # Add name request if it's the first interaction
+            if should_request_name and name_request_message:
+                answer += f"\n\n{name_request_message}"
+                
+            # Log the bot response for non-Leo & Loona questions too
+            self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+            
             return {
                 "generation": answer,
                 "source_documents": [],
                 "documents": [],
                 "question": question,
-                "chat_history": chat_history
+                "chat_history": chat_history,
+                # User information state
+                "user_phone": user_phone,
+                "user_name": user_profile.get("name", ""),
+                "user_profile": user_profile,
+                "name_extraction_result": name_extraction,
+                "should_request_name": False,  # Don't ask for name on redirections
+                "name_request_message": "",
+                "conversation_logged": True
             }
         
         if location_needed:
@@ -1438,12 +1581,28 @@ Our Leo & Loona parks are located at:
 🎪 **Festival City Mall** (Dubai)
 
 Which one would you like to know about? ✨"""
+            
+            # Add name request if it's needed
+            if should_request_name and name_request_message:
+                answer += f"\n\n{name_request_message}"
+                
+            # Log the bot response for location clarification
+            self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+            
             return {
                 "generation": answer,
                 "source_documents": top_documents,
                 "documents": top_documents,
                 "question": question,
-                "chat_history": chat_history
+                "chat_history": chat_history,
+                # User information state
+                "user_phone": user_phone,
+                "user_name": user_profile.get("name", ""),
+                "user_profile": user_profile,
+                "name_extraction_result": name_extraction,
+                "should_request_name": False,  # Don't ask for name during location clarification
+                "name_request_message": "",
+                "conversation_logged": True
             }
 
         # Get current date/time context for accurate responses
@@ -1488,12 +1647,86 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
         response = self.llm.invoke([HumanMessage(content=fast_prompt)])
         answer = response.content
         
+        # Add name request to answer if needed
+        if should_request_name and name_request_message:
+            answer += f"\n\n{name_request_message}"
+        
+        # Log the bot response
+        self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+        
         return {
             "generation": answer,
             "source_documents": top_documents,
             "documents": top_documents,
             "question": question,
-            "chat_history": chat_history
+            "chat_history": chat_history,
+            # User information state
+            "user_phone": user_phone,
+            "user_name": user_profile.get("name", ""),
+            "user_profile": user_profile,
+            "name_extraction_result": name_extraction,
+            "should_request_name": should_request_name,
+            "name_request_message": name_request_message,
+            "conversation_logged": True
+        }
+    
+    def _answer_with_personalization(self, stored_question: str, greeting: str, user_phone: str, user_profile: dict, chat_history: list, name_extraction: dict) -> dict:
+        """Answer the stored question with personalization"""
+        
+        # Get documents for the stored question
+        documents = self.retriever.invoke(stored_question)
+        top_documents = documents[:3]
+        context = "\n\n".join(doc.page_content for doc in top_documents)
+        
+        # Check location and Leo & Loona relevance for stored question
+        location_needed = self._check_location_clarification_needed(stored_question, context)
+        is_leo_loona_question = self._is_leo_loona_question(stored_question, context)
+        
+        # Add standard opening hours if needed
+        if "opening" in stored_question.lower() or "hours" in stored_question.lower():
+            context += "\n\nSTANDARD OPENING HOURS:\n- Yas Mall: 10:00 AM - 10:00 PM (Daily)\n- Dalma Mall: 10:00 AM - 10:00 PM (Daily)\n- Festival City Mall: 10:00 AM - 10:00 PM (Daily)"
+        
+        if not is_leo_loona_question:
+            answer = f"{greeting} I'm specifically here to help with questions about Leo & Loona amusement park! 🎠 I'd love to tell you about our magical attractions, ticket prices, opening hours, birthday parties, or anything else related to Leo & Loona. What would you like to know about our wonderful park?"
+        elif location_needed:
+            answer = f"{greeting} Leo & Loona has magical locations at different malls. Could you please let me know which location you're asking about?\n\nOur Leo & Loona parks are located at:\n🎪 **Dalma Mall** (Abu Dhabi)\n🎪 **Yas Mall** (Abu Dhabi)\n🎪 **Festival City Mall** (Dubai)\n\nWhich one would you like to know about? ✨"
+        else:
+            # Generate normal answer with personalization
+            datetime_context = self._format_datetime_context()
+            
+            fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park.
+
+{datetime_context}
+
+IMPORTANT: Start your response with this exact greeting: "{greeting}"
+
+Context information:
+{context}
+
+Question: {stored_question}
+
+Answer as Leo & Loona's warm, welcoming park host with the personalized greeting first:"""
+            
+            response = self.llm.invoke([HumanMessage(content=fast_prompt)])
+            answer = response.content
+        
+        # Log the personalized response
+        self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+        
+        return {
+            "generation": answer,
+            "source_documents": top_documents,
+            "documents": top_documents,
+            "question": stored_question,
+            "chat_history": chat_history,
+            # User information state
+            "user_phone": user_phone,
+            "user_name": user_profile.get("name", ""),
+            "user_profile": user_profile,
+            "name_extraction_result": name_extraction,
+            "should_request_name": False,
+            "name_request_message": "",
+            "conversation_logged": True
         }
     
     def _is_leo_loona_question(self, question: str, context: str) -> bool:
@@ -1581,7 +1814,13 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             chat_history = []
         
         try:
-            # Enhanced initial state
+            # Enhanced initial state with user tracking
+            # Use session-consistent phone number
+            session_phone = getattr(self, '_session_phone', None)
+            if not session_phone:
+                session_phone = self.user_tracker.generate_test_phone_number()
+                self._session_phone = session_phone
+            
             initial_state = {
                 "question": question,
                 "chat_history": chat_history,
@@ -1594,7 +1833,15 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
                 "needs_location_clarification": False,
                 "confidence_score": 0.0,
                 "needs_human_escalation": False,
-                "enhanced_context": ""
+                "enhanced_context": "",
+                # User tracking initialization with consistent phone
+                "user_phone": session_phone,
+                "user_name": "",
+                "user_profile": {},
+                "name_extraction_result": {},
+                "should_request_name": False,
+                "name_request_message": "",
+                "conversation_logged": False
             }
             
             # Run the graph
@@ -1602,7 +1849,16 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             
             return {
                 "answer": result.get("generation", "No answer generated"),
-                "source_documents": result.get("source_documents", [])
+                "source_documents": result.get("source_documents", []),
+                # Include user information for Streamlit display
+                "user_info": {
+                    "phone": result.get("user_phone", ""),
+                    "name": result.get("user_name", ""),
+                    "profile": result.get("user_profile", {}),
+                    "name_extraction": result.get("name_extraction_result", {}),
+                    "should_request_name": result.get("should_request_name", False),
+                    "conversation_logged": result.get("conversation_logged", False)
+                }
             }
             
         except Exception as e:
