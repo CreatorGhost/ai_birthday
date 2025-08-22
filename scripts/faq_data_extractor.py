@@ -30,7 +30,7 @@ class FAQDataExtractor:
         logger.info(f"Output folder: {self.output_folder_path}")
     
     def extract_excel_data(self) -> Dict[str, List[Dict]]:
-        """Extract data from all Excel files"""
+        """Extract data from all Excel files and all sheets within each file"""
         logger.info("Extracting Excel data...")
         
         extracted_data = {
@@ -45,28 +45,56 @@ class FAQDataExtractor:
             logger.info(f"Processing {excel_file.name}")
             
             try:
-                df = pd.read_excel(excel_file)
-                df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
+                # Read all sheets from the Excel file
+                excel_data = pd.read_excel(excel_file, sheet_name=None)  # None reads all sheets
                 
-                data_list = []
-                for _, row in df.iterrows():
-                    row_data = {}
-                    for col in df.columns:
-                        if pd.notna(row[col]) and str(row[col]).strip():
-                            row_data[col] = str(row[col]).strip()
+                for sheet_name, df in excel_data.items():
+                    logger.info(f"  Processing sheet: {sheet_name}")
                     
-                    if row_data:
-                        row_data['source_file'] = excel_file.name
-                        data_list.append(row_data)
-                
-                # Categorize by filename
-                filename_lower = excel_file.name.lower()
-                if 'contact' in filename_lower:
-                    extracted_data['contacts'].extend(data_list)
-                elif 'location' in filename_lower:
-                    extracted_data['locations'].extend(data_list)
-                elif 'pricing' in filename_lower or 'park' in filename_lower:
-                    extracted_data['pricing'].extend(data_list)
+                    if df.empty:
+                        logger.warning(f"    Sheet {sheet_name} is empty, skipping")
+                        continue
+                    
+                    # Clean column names
+                    df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
+                    
+                    data_list = []
+                    for _, row in df.iterrows():
+                        row_data = {}
+                        for col in df.columns:
+                            if pd.notna(row[col]) and str(row[col]).strip():
+                                row_data[col] = str(row[col]).strip()
+                        
+                        if row_data:
+                            row_data['source_file'] = excel_file.name
+                            row_data['sheet_name'] = sheet_name
+                            data_list.append(row_data)
+                    
+                    # Categorize by filename and sheet name
+                    filename_lower = excel_file.name.lower()
+                    sheet_name_lower = sheet_name.lower()
+                    
+                    # Check both filename and sheet name for categorization
+                    if ('contact' in filename_lower or 'contact' in sheet_name_lower):
+                        extracted_data['contacts'].extend(data_list)
+                        logger.info(f"    Added {len(data_list)} contact entries from sheet {sheet_name}")
+                    elif ('location' in filename_lower or 'location' in sheet_name_lower):
+                        extracted_data['locations'].extend(data_list)
+                        logger.info(f"    Added {len(data_list)} location entries from sheet {sheet_name}")
+                    elif ('pricing' in filename_lower or 'park' in filename_lower or 
+                          'pricing' in sheet_name_lower or 'park' in sheet_name_lower or
+                          'price' in sheet_name_lower or 'ticket' in sheet_name_lower):
+                        extracted_data['pricing'].extend(data_list)
+                        logger.info(f"    Added {len(data_list)} pricing entries from sheet {sheet_name}")
+                    else:
+                        # If no specific category matches, add to a general category based on filename
+                        if 'contact' in filename_lower:
+                            extracted_data['contacts'].extend(data_list)
+                        elif 'location' in filename_lower:
+                            extracted_data['locations'].extend(data_list)
+                        else:
+                            extracted_data['pricing'].extend(data_list)  # Default to pricing
+                        logger.info(f"    Added {len(data_list)} entries from sheet {sheet_name} (default categorization)")
                 
             except Exception as e:
                 logger.error(f"Error processing {excel_file.name}: {str(e)}")
@@ -118,8 +146,17 @@ class FAQDataExtractor:
         if excel_data.get('contacts'):
             sections.append("# Contact Information\n")
             for contact in excel_data['contacts']:
+                # Add source information if available
+                source_info = []
+                if 'source_file' in contact:
+                    source_info.append(f"File: {contact['source_file']}")
+                if 'sheet_name' in contact:
+                    source_info.append(f"Sheet: {contact['sheet_name']}")
+                if source_info:
+                    sections.append(f"*Source: {', '.join(source_info)}*")
+                
                 for key, value in contact.items():
-                    if key != 'source_file':
+                    if key not in ['source_file', 'sheet_name']:
                         readable_key = key.replace('_', ' ').title()
                         sections.append(f"**{readable_key}:** {value}")
                 sections.append("")
@@ -128,8 +165,17 @@ class FAQDataExtractor:
         if excel_data.get('locations'):
             sections.append("# Location Information\n")
             for location in excel_data['locations']:
+                # Add source information if available
+                source_info = []
+                if 'source_file' in location:
+                    source_info.append(f"File: {location['source_file']}")
+                if 'sheet_name' in location:
+                    source_info.append(f"Sheet: {location['sheet_name']}")
+                if source_info:
+                    sections.append(f"*Source: {', '.join(source_info)}*")
+                
                 for key, value in location.items():
-                    if key != 'source_file':
+                    if key not in ['source_file', 'sheet_name']:
                         readable_key = key.replace('_', ' ').title()
                         sections.append(f"**{readable_key}:** {value}")
                 sections.append("")
@@ -138,8 +184,17 @@ class FAQDataExtractor:
         if excel_data.get('pricing'):
             sections.append("# Pricing Information\n")
             for price_item in excel_data['pricing']:
+                # Add source information if available
+                source_info = []
+                if 'source_file' in price_item:
+                    source_info.append(f"File: {price_item['source_file']}")
+                if 'sheet_name' in price_item:
+                    source_info.append(f"Sheet: {price_item['sheet_name']}")
+                if source_info:
+                    sections.append(f"*Source: {', '.join(source_info)}*")
+                
                 for key, value in price_item.items():
-                    if key != 'source_file':
+                    if key not in ['source_file', 'sheet_name']:
                         readable_key = key.replace('_', ' ').title()
                         sections.append(f"**{readable_key}:** {value}")
                 sections.append("")

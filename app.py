@@ -232,8 +232,13 @@ def main():
                                 'last_seen': user_info_data.get('profile', {}).get('last_seen', 'Never')
                             })
                             
-                            # Update user info silently (no duplicate notifications)
-                            pass
+                            # Show lead creation notification if available
+                            if 'lead_created' in result and result['lead_created']:
+                                lead_info = result['lead_created']
+                                if lead_info['category'] == 'birthday_party':
+                                    st.success(f"🎂 Birthday party lead created in Bitrix! (ID: {lead_info['lead_id']})")
+                                else:
+                                    st.info(f"💬 General inquiry lead created in Bitrix! (ID: {lead_info['lead_id']})")
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})

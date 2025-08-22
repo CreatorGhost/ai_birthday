@@ -31,3 +31,65 @@ Quick reminders:
 - Remember socks are required to re‑enter play zones — please put them on before going back.
 
 Tell me which Leo & Loona location you’re at (Yas Mall, Festival City, or Dalma Mall) and I’ll give you exact directions right away.
+[2025-08-21 16:11:17] | Phone: +971559733350 | Name: Unknown | USER: What are the contact details for Leo & Loona?
+[2025-08-21 16:11:17] | Phone: +971559733350 | Name: Unknown | BOT: Hello there! 👋 I'd love to help you with that. May I have your name so I can give you personalized assistance?
+[2025-08-21 16:11:26] | Phone: +971559733350 | Name: Unknown | USER: What are the pricing options?
+[2025-08-21 16:11:26] | Phone: +971559733350 | Name: Unknown | BOT: Hello there! 👋 I'd love to help you with that. May I have your name so I can give you personalized assistance?
+[2025-08-21 16:11:29] | Phone: +971559733350 | Name: Unknown | USER: Tell me about the rules and regulations
+[2025-08-21 16:11:29] | Phone: +971559733350 | Name: Unknown | BOT: Hey, happy to see you! 😊 Can you tell me your name so that I can assist you better?
+[2025-08-21 16:15:05] | Phone: +971528156807 | Name: Unknown | USER: can you tell me about socks that are price of socks
+[2025-08-21 16:15:05] | Phone: +971528156807 | Name: Unknown | BOT: Hi! 😊 I'm excited to help you. Could you please tell me your name so I can assist you better?
+[2025-08-21 16:15:41] | Phone: +971528156807 | Name: Aditya | BOT: Wonderful, Aditya! 😊
+
+Oh, lovely — I’d be happy to help! Do you mean general prices for socks, or are you asking about socks sold at our Leo & Loona gift shop? Either way, here’s a quick, friendly price guide and some helpful tips to pick the right pair.
+
+Typical price ranges (UAE, approximate)
+- Baby/infant socks: AED 5–15 per pair; multipacks (3–5 pairs) AED 10–30.  
+- Kids / character socks: AED 10–25 per single pair; 3‑pack AED 20–50.  
+- Everyday adult socks (basic cotton): AED 10–25 per pair; 3–6 pack AED 30–80.  
+- Performance / athletic socks (moisture‑wicking, cushioned): AED 25–80 per pair.  
+- Branded / premium socks (merino, designer): AED 80–200+ per pair.  
+- Novelty or LED socks: AED 25–60.  
+- Bulk/wholesale: often AED 3–8 per pair depending on quantity and quality.
+
+Shopping tips
+- Material matters: cotton blends for everyday, merino for breathability/warmth, synthetic blends for sports.  
+- Size & fit: check age/size charts for children — sizes vary by brand.  
+- Care: follow washing instructions to keep elasticity and prints longer.  
+- Bundles: multipacks often give the best value for basics.  
+- Where to look in the UAE: supermarkets and hypermarkets (Carrefour, Lulu), fashion retailers (H&M, Zara), sports stores (Decathlon), online (Namshi, Amazon.ae) — plus local markets for bargains.
+
+If you meant park merchandise: we sometimes carry themed Leo & Loona socks in our gift shop — if you’re visiting, I’d be delighted to check current stock or let you know any seasonal offers. Would you like me to look up specific styles, sizes, or stores (and which currency you prefer)? 🎈
+[2025-08-21 16:16:25] | Phone: +971528156807 | Name: Aditya | USER: can you tell me abourt the contact info of yas mall
+[2025-08-21 16:16:40] | Phone: +971528156807 | Name: Aditya | BOT: Hi Aditya — what a beautiful name! 😊
+
+I can’t provide contact details for Yas Mall itself, but I’d be delighted to share the contact info for Leo & Loona at Yas Mall (our Yas location). Would you like our phone number, email, address, opening hours, or directions — or all of the above? I can also check current prices, discounts, or help with a quick booking. 🎈
+[2025-08-22 09:14:24] | Phone: +971502812627 | Name: Unknown | USER: What are the contact details for Leo & Loona?
+[2025-08-22 09:14:24] | Phone: +971502812627 | Name: Unknown | BOT: Hey, happy to see you! 😊 Can you tell me your name so that I can assist you better?
+[2025-08-22 09:14:29] | Phone: +971502812627 | Name: Unknown | USER: What are the pricing options?
+[2025-08-22 09:14:29] | Phone: +971502812627 | Name: Unknown | BOT: Hi! 😊 I'm excited to help you. Could you please tell me your name so I can assist you better?
+[2025-08-22 09:14:32] | Phone: +971502812627 | Name: Unknown | USER: Tell me about the rules and regulations
+[2025-08-22 09:14:32] | Phone: +971502812627 | Name: Unknown | BOT: Hello there! 👋 I'd love to help you with that. May I have your name so I can give you personalized assistance?
+[2025-08-22 09:15:38] | Phone: +971561084086 | Name: Unknown | USER: can you tell me abourt the contact info of yas mall
+
+
+[2025-08-22 09:15:38] | Phone: +971561084086 | Name: Unknown | BOT: Hello there! 👋 I'd love to help you with that. May I have your name so I can give you personalized assistance?
+[2025-08-22 09:16:05] | Phone: +971561084086 | Name: Adi | BOT: Thank you, Adi! 😊
+
+Absolutely — here are the contact details for our Leo & Loona at Yas Mall:
+
+- Address: Yas Mall, Abu Dhabi — 1st floor, beside Five Guys (nearest parking: Hypermarket Parking)  
+- Landline: 04 2375454  
+- WhatsApp: +971 501754133  
+- Email: info.ll@leoloona.ae  
+- Website: https://leoloona.ae/yasmall/  
+- Instagram: @leo.loona  
+- YouTube: www.youtube.com/@LeoLoona
+
+Opening hours:
+- Sunday–Thursday: 10:00 AM – 11:00 PM  
+- Friday–Saturday: 10:00 AM – 12:00 AM  
+- Holidays: follow mall operating hours
+
+Would you like me to check today's crowd level, available ticket options, or directions from your location?
+[2025-08-22 09:16:18] | Phone: +971561084086 | Name: Adi | USER: can you tell me the pirce of socks

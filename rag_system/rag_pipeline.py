@@ -1,5 +1,6 @@
 import os
 import time
+import random
 from datetime import datetime, timezone, timedelta
 from typing import List, TypedDict, Annotated
 from dotenv import load_dotenv
@@ -103,6 +104,14 @@ class RAGPipeline:
         
         # Initialize user tracking for name collection and storage
         self.user_tracker = UserTracker(self.llm)
+        
+        # Initialize Bitrix lead manager
+        try:
+            from bitrix_integration.lead_manager import LeadManager
+            self.lead_manager = LeadManager()
+        except Exception as e:
+            print(f"Warning: Bitrix integration not available - {e}")
+            self.lead_manager = None
         
         # LLM for document grading (using same model)
         chat_config = self.model_config.get_chat_model_config().copy()
@@ -347,74 +356,190 @@ class RAGPipeline:
         )
     
     def setup_pinecone_index(self, dimension=None):
-        """Create or connect to Pinecone index"""
-        try:
-            # Use model-specific embedding dimensions if not provided
-            if dimension is None:
-                dimension = self.model_config.get_embedding_dimensions()
-            
-            # Check if index exists
-            if self.index_name not in [index.name for index in self.pc.list_indexes()]:
-                print(f"Creating new Pinecone index: {self.index_name} with dimension {dimension}")
-                self.pc.create_index(
-                    name=self.index_name,
-                    dimension=dimension,
-                    metric='cosine',
-                    spec=ServerlessSpec(
-                        cloud='aws',
-                        region=self.pinecone_environment
+        """Create or connect to Pinecone index with retry logic"""
+        max_retries = 3
+        base_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"Setting up Pinecone index (attempt {attempt + 1}/{max_retries})...")
+                
+                # Use model-specific embedding dimensions if not provided
+                if dimension is None:
+                    dimension = self.model_config.get_embedding_dimensions()
+                
+                # Check if index exists
+                if self.index_name not in [index.name for index in self.pc.list_indexes()]:
+                    print(f"Creating new Pinecone index: {self.index_name} with dimension {dimension}")
+                    self.pc.create_index(
+                        name=self.index_name,
+                        dimension=dimension,
+                        metric='cosine',
+                        spec=ServerlessSpec(
+                            cloud='aws',
+                            region=self.pinecone_environment
+                        )
                     )
-                )
-                # Wait for index to be ready
-                time.sleep(10)
-            else:
-                print(f"Using existing Pinecone index: {self.index_name}")
-            
-            return True
-        except Exception as e:
-            print(f"Error setting up Pinecone index: {str(e)}")
-            return False
+                    # Wait for index to be ready with incremental checks
+                    print("⏳ Waiting for index to be ready...")
+                    for i in range(6):  # Check 6 times over 30 seconds
+                        time.sleep(5)
+                        try:
+                            index_status = self.pc.describe_index(self.index_name)
+                            if index_status.status.ready:
+                                print("✅ Index is ready")
+                                break
+                        except:
+                            continue
+                    else:
+                        print("⚠️ Index creation taking longer than expected, but continuing...")
+                else:
+                    print(f"Using existing Pinecone index: {self.index_name}")
+                
+                return True
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # Check if it's a connection/SSL error that we should retry
+                if any(keyword in error_str for keyword in ['ssl', 'connection', 'timeout', 'eof', 'retry']):
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                        print(f"⚠️ Connection error setting up index: {str(e)}")
+                        print(f"🔄 Retrying in {delay:.1f} seconds...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        print(f"❌ Max retries exceeded setting up index: {str(e)}")
+                        return False
+                else:
+                    # Non-retryable error
+                    print(f"❌ Error setting up Pinecone index: {str(e)}")
+                    return False
+        
+        return False
     
     def create_vector_store(self, documents):
-        """Create vector store from documents using Pinecone"""
-        try:
-            self.vector_store = PineconeVectorStore.from_documents(
-                documents=documents,
-                embedding=self.embeddings,
-                index_name=self.index_name
-            )
-            
-            # Setup retriever
-            self.retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 5}
-            )
-            
-            print(f"Created vector store with {len(documents)} documents")
-            return True
-        except Exception as e:
-            print(f"Error creating vector store: {str(e)}")
-            return False
+        """Create vector store from documents using Pinecone with retry logic and batch processing"""
+        max_retries = 5
+        base_delay = 2
+        
+        # Try smaller batches if we have many documents
+        batch_size = min(50, len(documents))  # Start with smaller batches
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"Creating vector store (attempt {attempt + 1}/{max_retries})...")
+                print(f"Processing {len(documents)} documents in batches of {batch_size}...")
+                
+                # For large document sets, try batch processing
+                if len(documents) > batch_size and attempt > 0:
+                    print(f"🔄 Trying batch processing with batch size {batch_size}...")
+                    
+                    # Create vector store with first batch
+                    first_batch = documents[:batch_size]
+                    self.vector_store = PineconeVectorStore.from_documents(
+                        documents=first_batch,
+                        embedding=self.embeddings,
+                        index_name=self.index_name
+                    )
+                    
+                    # Add remaining documents in batches
+                    for i in range(batch_size, len(documents), batch_size):
+                        batch = documents[i:i + batch_size]
+                        print(f"Adding batch {i//batch_size + 1} ({len(batch)} documents)...")
+                        self.vector_store.add_documents(batch)
+                        time.sleep(1)  # Small delay between batches
+                else:
+                    # Try to process all documents at once
+                    self.vector_store = PineconeVectorStore.from_documents(
+                        documents=documents,
+                        embedding=self.embeddings,
+                        index_name=self.index_name
+                    )
+                
+                # Setup retriever
+                self.retriever = self.vector_store.as_retriever(
+                    search_type="similarity",
+                    search_kwargs={"k": 5}
+                )
+                
+                print(f"✅ Created vector store with {len(documents)} documents")
+                return True
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # Check if it's a connection/SSL error that we should retry
+                if any(keyword in error_str for keyword in ['ssl', 'connection', 'timeout', 'eof', 'retry', 'rate limit']):
+                    if attempt < max_retries - 1:
+                        # Exponential backoff with jitter
+                        delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                        print(f"⚠️ Connection error (attempt {attempt + 1}): {str(e)}")
+                        print(f"🔄 Retrying in {delay:.1f} seconds...")
+                        
+                        # Reduce batch size for next attempt
+                        if len(documents) > 10:
+                            batch_size = max(10, batch_size // 2)
+                            print(f"📉 Reducing batch size to {batch_size} for next attempt")
+                        
+                        time.sleep(delay)
+                        continue
+                    else:
+                        print(f"❌ Max retries exceeded. Final error: {str(e)}")
+                        print("💡 Suggestion: Try running the ingestion again, or check your internet connection")
+                        return False
+                else:
+                    # Non-retryable error
+                    print(f"❌ Error creating vector store: {str(e)}")
+                    return False
+        
+        return False
     
     def load_existing_vector_store(self):
-        """Load existing vector store from Pinecone"""
-        try:
-            self.vector_store = PineconeVectorStore(
-                index_name=self.index_name,
-                embedding=self.embeddings
-            )
-            
-            # Setup fast retriever with fewer documents for speed
-            self.retriever = self.vector_store.as_retriever(
-                search_type="similarity",
-                search_kwargs={"k": 3}  # Reduced from 5 to 3 for speed
-            )
-            
-            print("Loaded existing vector store")
-            return True
-        except Exception as e:
-            print(f"Error loading vector store: {str(e)}")
-            return False
+        """Load existing vector store from Pinecone with retry logic"""
+        max_retries = 3
+        base_delay = 1
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"Loading existing vector store (attempt {attempt + 1}/{max_retries})...")
+                
+                self.vector_store = PineconeVectorStore(
+                    index_name=self.index_name,
+                    embedding=self.embeddings
+                )
+                
+                # Setup fast retriever with fewer documents for speed
+                self.retriever = self.vector_store.as_retriever(
+                    search_type="similarity",
+                    search_kwargs={"k": 3}  # Reduced from 5 to 3 for speed
+                )
+                
+                print("✅ Loaded existing vector store")
+                return True
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                
+                # Check if it's a connection/SSL error that we should retry
+                if any(keyword in error_str for keyword in ['ssl', 'connection', 'timeout', 'eof', 'retry']):
+                    if attempt < max_retries - 1:
+                        # Shorter delay for loading existing store
+                        delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+                        print(f"⚠️ Connection error loading vector store: {str(e)}")
+                        print(f"🔄 Retrying in {delay:.1f} seconds...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        print(f"❌ Max retries exceeded loading vector store: {str(e)}")
+                        return False
+                else:
+                    # Non-retryable error
+                    print(f"❌ Error loading vector store: {str(e)}")
+                    return False
+        
+        return False
     
     def _create_retriever_tool(self):
         """Create a retriever tool for the graph"""
@@ -1499,6 +1624,25 @@ Respond with only "YES" or "NO":""",
         self.user_tracker.log_conversation(user_phone, user_profile.get("name"), question, is_user=True)
         self.user_tracker.update_user_profile(user_phone)  # Update message count and last seen
         
+        # Analyze conversation for Bitrix lead categorization
+        category_analysis = self.user_tracker.analyze_conversation_category(chat_history, question)
+        
+        # Check if we should create a lead in Bitrix
+        if (self.lead_manager and 
+            user_profile.get("name") and 
+            self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": question}])):
+            
+            # Create lead in Bitrix with proper categorization
+            lead_result = self.lead_manager.create_chatbot_lead(
+                user_info=user_profile,
+                conversation_history=chat_history + [{"role": "user", "content": question}],
+                category_analysis=category_analysis
+            )
+            
+            # Store lead result for UI display
+            if lead_result:
+                state["lead_created"] = lead_result
+        
         # If we should request name for first interaction, return name request
         if should_request_name and name_request_message and is_first_interaction:
             # Return polite name request
@@ -1858,7 +2002,9 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
                     "name_extraction": result.get("name_extraction_result", {}),
                     "should_request_name": result.get("should_request_name", False),
                     "conversation_logged": result.get("conversation_logged", False)
-                }
+                },
+                # Include lead creation info if available
+                "lead_created": result.get("lead_created", None)
             }
             
         except Exception as e:

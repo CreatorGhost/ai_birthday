@@ -229,6 +229,63 @@ Respond with JSON:
         
         return random.choice(greetings)
     
+    def analyze_conversation_category(self, conversation_history: List[Dict], current_message: str) -> Dict:
+        """Analyze conversation to determine Bitrix category (GENERAL QUESTIONS vs NEW APPROACH)"""
+        
+        # Combine all conversation messages for analysis
+        all_messages = []
+        for msg in conversation_history:
+            if msg.get('content'):
+                all_messages.append(msg['content'])
+        all_messages.append(current_message)
+        
+        conversation_text = " ".join(all_messages)
+        
+        prompt = f"""Analyze this conversation to determine if it's related to birthday parties or general park inquiries.
+
+Conversation: "{conversation_text}"
+
+Birthday Party Indicators:
+- Mentions "birthday", "party", "celebration", "celebrate"
+- Asks about birthday packages, party rooms, decorations
+- Mentions age, kids birthday, party planning
+- Asks about group bookings for celebrations
+- Special event planning
+
+General Inquiries:
+- General park information, hours, prices
+- Location questions, directions
+- Regular family visits
+- General activities and attractions
+- Safety questions, policies
+
+Respond with JSON:
+{{
+    "category": "birthday_party" or "general",
+    "confidence": 0.0-1.0,
+    "reasoning": "brief explanation",
+    "keywords_found": ["list", "of", "relevant", "keywords"]
+}}
+
+Only choose "birthday_party" if clearly related to birthday celebrations."""
+
+        try:
+            chain = PromptTemplate.from_template(prompt) | self.llm | StrOutputParser()
+            response = chain.invoke({})
+            
+            # Parse JSON response
+            import re
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                return result
+            else:
+                return {"category": "general", "confidence": 0.5, "reasoning": "Could not parse response", "keywords_found": []}
+                
+        except Exception as e:
+            print(f"Error analyzing conversation category: {e}")
+            return {"category": "general", "confidence": 0.5, "reasoning": f"Error: {str(e)}", "keywords_found": []}
+    
     def store_original_question(self, phone: str, question: str):
         """Store the original question until name is provided"""
         try:

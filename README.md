@@ -5,7 +5,10 @@ A Retrieval-Augmented Generation (RAG) pipeline that processes FAQ documents and
 ## Features
 
 ### Core RAG System
-- **Document Processing**: Automatically loads and processes .docx FAQ documents
+- **Multi-Format Document Processing**: Supports .docx, Excel (.xlsx), JSON, and Markdown files
+- **Flexible Ingestion Methods**: Choose between structured JSON, Excel data, consolidated markdown, or original documents
+- **Smart Auto-Detection**: Automatically selects the best available ingestion method
+- **Force Method Selection**: Override auto-detection to use specific ingestion methods
 - **Vector Embeddings**: Uses OpenAI embeddings for semantic search
 - **Pinecone Integration**: Stores and retrieves vectors using Pinecone vector database
 - **Question Answering**: Provides accurate answers with source document references
@@ -75,7 +78,66 @@ A Retrieval-Augmented Generation (RAG) pipeline that processes FAQ documents and
 
 ## Usage
 
-### Command Line Interface (Recommended)
+### Document Ingestion (New Enhanced System)
+
+The enhanced document ingestion system provides flexible options for processing your FAQ data:
+
+#### Auto-Detection (Recommended)
+```bash
+python ingest_documents.py
+```
+
+The system automatically selects the best available method in this priority order:
+1. **JSON file** (`./rag_ready_faq/langchain_documents.json`) - Best quality, structured data
+2. **Excel files** (`./FAQ/*.xlsx`) - Structured data with automatic categorization
+3. **Consolidated markdown** (`./rag_ready_faq/consolidated_faq.md`) - Human-readable format
+4. **Original DOCX files** (`./FAQ/*.docx`) - Fallback to original documents
+
+#### Force Specific Method
+```bash
+# Force JSON ingestion (highest quality)
+python ingest_documents.py --method json
+
+# Force Excel ingestion (structured data)
+python ingest_documents.py --method excel
+
+# Force markdown ingestion (consolidated format)
+python ingest_documents.py --method markdown
+
+# Force DOCX ingestion (original documents)
+python ingest_documents.py --method docx
+```
+
+#### Advanced Options
+```bash
+# Custom chunk settings
+python ingest_documents.py --method json --chunk-size 3000 --chunk-overlap 600
+
+# Skip testing after ingestion
+python ingest_documents.py --method markdown --no-tests
+
+# Quiet mode (reduced output)
+python ingest_documents.py --method json --quiet
+
+# Show help
+python ingest_documents.py --help
+```
+
+### FAQ Data Extraction (Preprocessing)
+
+Before ingestion, you can extract and structure your FAQ data:
+
+```bash
+# Extract data from FAQ folder and create structured outputs
+python scripts/faq_data_extractor.py
+```
+
+This creates:
+- `structured_faq_data.json` - Complete structured data
+- `consolidated_faq.md` - Human-readable consolidated FAQ
+- `langchain_documents.json` - Ready-to-ingest LangChain documents
+
+### Command Line Interface (Legacy)
 
 Run the simple command-line version:
 
@@ -175,33 +237,52 @@ FAQ-RAG-Pipeline/
 │   ├── bitrix_utils.py     # Command-line utilities
 │   ├── example_usage.py    # Usage examples
 │   └── README.md           # Bitrix integration docs
-├── FAQ/                    # FAQ documents (.docx files)
-│   ├── TASK 5.1.1 - LL. FESTIVAL - FAQ.docx
-│   ├── TASK 5.1.1 - LL. YAS- FAQ.docx
-│   └── ...
+├── scripts/                # Utility scripts
+│   └── faq_data_extractor.py # FAQ data extraction and preprocessing
+├── FAQ/                    # Source documents
+│   ├── *.docx              # Original FAQ documents
+│   └── *.xlsx              # Excel files with structured data
+├── rag_ready_faq/          # Processed FAQ outputs (auto-generated)
+│   ├── structured_faq_data.json    # Complete structured data
+│   ├── consolidated_faq.md         # Human-readable consolidated FAQ
+│   └── langchain_documents.json   # Ready-to-ingest LangChain documents
+├── user_data/              # User interaction data
 ├── tests/                  # Test scripts
 ├── app.py                  # Streamlit web interface
-├── simple_rag.py          # Command-line interface
-├── requirements.txt       # Python dependencies
-├── .env.example          # Environment variables template
+├── simple_rag.py           # Command-line interface (legacy)
+├── ingest_documents.py     # Enhanced document ingestion system
+├── requirements.txt        # Python dependencies
+├── .env.example           # Environment variables template
 ├── .env                    # Your environment variables (create this)
-└── README.md             # This file
+└── README.md              # This file
 ```
 
 ## How It Works
 
-1. **Document Loading**: The system scans the FAQ folder for .docx files and extracts text content
+### Enhanced Multi-Format Processing
 
-2. **Text Splitting**: Large documents are split into smaller chunks (1000 characters with 200 character overlap) for better retrieval
+1. **Data Source Selection**: The system intelligently selects the best available data source:
+   - **JSON**: Pre-processed LangChain documents with optimal structure
+   - **Excel**: Structured data with automatic categorization (contacts, locations, pricing)
+   - **Markdown**: Consolidated human-readable format
+   - **DOCX**: Original document format as fallback
 
-3. **Embedding Generation**: Each text chunk is converted to a vector embedding using OpenAI's text-embedding-ada-002 model
+2. **Document Processing**: Different processing paths based on source:
+   - **JSON**: Direct loading of structured Document objects
+   - **Excel**: Reads all sheets, categorizes data, converts to structured documents
+   - **Markdown**: Loads consolidated content with metadata
+   - **DOCX**: Extracts text content from Word documents
 
-4. **Vector Storage**: Embeddings are stored in Pinecone vector database with metadata about source documents
+3. **Text Splitting**: Documents are split into configurable chunks (default: 2800 characters with 500 character overlap) for optimal retrieval
 
-5. **Question Processing**: When you ask a question:
+4. **Embedding Generation**: Each text chunk is converted to a vector embedding using OpenAI's text-embedding-ada-002 model
+
+5. **Vector Storage**: Embeddings are stored in Pinecone vector database with rich metadata about source documents
+
+6. **Question Processing**: When you ask a question:
    - Your question is converted to an embedding
    - Pinecone finds the most similar document chunks
-   - The relevant chunks are sent to GPT-3.5-turbo along with your question
+   - The relevant chunks are sent to GPT along with your question
    - The AI generates a contextual answer based on the retrieved information
 
 ## Configuration Options
@@ -213,12 +294,41 @@ FAQ-RAG-Pipeline/
 - `PINECONE_ENVIRONMENT`: Pinecone environment (default: us-east-1)
 - `PINECONE_INDEX_NAME`: Name for your Pinecone index (default: faq-embeddings)
 
-### Customization
+### Ingestion Customization
 
+#### Command Line Options
+```bash
+# Chunk size configuration
+python ingest_documents.py --chunk-size 3000 --chunk-overlap 600
+
+# Method selection
+python ingest_documents.py --method json
+
+# Testing options
+python ingest_documents.py --no-tests --quiet
+```
+
+#### Programmatic Configuration
+```python
+from ingest_documents import DocumentIngestor
+
+# Custom configuration
+ingestor = DocumentIngestor(
+    chunk_size=3000,           # Custom chunk size
+    chunk_overlap=600,         # Custom overlap
+    force_method='json',       # Force specific method
+    run_tests=False,          # Skip tests
+    verbose=False             # Quiet mode
+)
+
+success = ingestor.auto_ingest()
+```
+
+#### Code-Level Customization
 You can modify these parameters in the code:
 
-- **Chunk size**: Change `chunk_size` in `split_documents()` method
-- **Chunk overlap**: Change `chunk_overlap` in `split_documents()` method
+- **Chunk size**: Use `--chunk-size` CLI option or `chunk_size` parameter
+- **Chunk overlap**: Use `--chunk-overlap` CLI option or `chunk_overlap` parameter  
 - **Number of retrieved documents**: Change `k` value in retriever setup
 - **LLM model**: Change the model in `ChatOpenAI` initialization
 - **Embedding model**: Change the model in `OpenAIEmbeddings` initialization

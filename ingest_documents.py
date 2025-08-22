@@ -8,15 +8,17 @@ Configurable parameters for chunk size, overlap, and other settings.
 Usage:
     from ingest_documents import DocumentIngestor
     ingestor = DocumentIngestor(chunk_size=2800, chunk_overlap=500)
-    success = ingestor.ingest_markdown_file("./rag_ready_faq/consolidated_faq.md")
+    success = ingestor.auto_ingest()
 """
 
 import os
 import sys
 import time
+import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 from dotenv import load_dotenv
+import pandas as pd
 
 # Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -37,7 +39,8 @@ class DocumentIngestor:
         markdown_file: str = "./rag_ready_faq/consolidated_faq.md",
         test_questions: Optional[List[str]] = None,
         run_tests: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        force_method: Optional[str] = None
     ):
         """
         Initialize DocumentIngestor with configurable parameters
@@ -50,6 +53,7 @@ class DocumentIngestor:
             test_questions: List of questions for testing ingestion
             run_tests: Whether to run tests after ingestion
             verbose: Whether to print detailed output
+            force_method: Force specific ingestion method ('json', 'excel', 'markdown', 'docx', None for auto)
         """
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -57,6 +61,7 @@ class DocumentIngestor:
         self.markdown_file = markdown_file
         self.run_tests = run_tests
         self.verbose = verbose
+        self.force_method = force_method
         
         # Default test questions
         self.test_questions = test_questions or [
@@ -221,6 +226,314 @@ class DocumentIngestor:
             doc_count = len(result.get('source_documents', []))
             self._print(f"   Sources: {doc_count} document(s)")
     
+    def extract_excel_data(self) -> Dict[str, List[Dict]]:
+        """Extract data from all Excel files and all sheets within each file"""
+        self._print("🔍 Extracting Excel data...")
+        
+        extracted_data = {
+            'contacts': [],
+            'locations': [],
+            'pricing': []
+        }
+        
+        excel_files = list(Path(self.faq_folder).glob("*.xlsx"))
+        
+        if not excel_files:
+            self._print("⚠️ No Excel files found in FAQ folder")
+            return extracted_data
+        
+        for excel_file in excel_files:
+            self._print(f"Processing {excel_file.name}")
+            
+            try:
+                # Read all sheets from the Excel file
+                excel_data = pd.read_excel(excel_file, sheet_name=None)  # None reads all sheets
+                
+                for sheet_name, df in excel_data.items():
+                    self._print(f"  Processing sheet: {sheet_name}")
+                    
+                    if df.empty:
+                        self._print(f"    Sheet {sheet_name} is empty, skipping")
+                        continue
+                    
+                    # Clean column names
+                    df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
+                    
+                    data_list = []
+                    for _, row in df.iterrows():
+                        row_data = {}
+                        for col in df.columns:
+                            if pd.notna(row[col]) and str(row[col]).strip():
+                                row_data[col] = str(row[col]).strip()
+                        
+                        if row_data:
+                            row_data['source_file'] = excel_file.name
+                            row_data['sheet_name'] = sheet_name
+                            data_list.append(row_data)
+                    
+                    # Categorize by filename and sheet name
+                    filename_lower = excel_file.name.lower()
+                    sheet_name_lower = sheet_name.lower()
+                    
+                    # Check both filename and sheet name for categorization
+                    if ('contact' in filename_lower or 'contact' in sheet_name_lower):
+                        extracted_data['contacts'].extend(data_list)
+                        self._print(f"    Added {len(data_list)} contact entries from sheet {sheet_name}")
+                    elif ('location' in filename_lower or 'location' in sheet_name_lower):
+                        extracted_data['locations'].extend(data_list)
+                        self._print(f"    Added {len(data_list)} location entries from sheet {sheet_name}")
+                    elif ('pricing' in filename_lower or 'park' in filename_lower or 
+                          'pricing' in sheet_name_lower or 'park' in sheet_name_lower or
+                          'price' in sheet_name_lower or 'ticket' in sheet_name_lower):
+                        extracted_data['pricing'].extend(data_list)
+                        self._print(f"    Added {len(data_list)} pricing entries from sheet {sheet_name}")
+                    else:
+                        # Default to pricing for uncategorized data
+                        extracted_data['pricing'].extend(data_list)
+                        self._print(f"    Added {len(data_list)} entries from sheet {sheet_name} (default categorization)")
+                
+            except Exception as e:
+                self._print(f"❌ Error processing {excel_file.name}: {str(e)}")
+        
+        total_contacts = len(extracted_data['contacts'])
+        total_locations = len(extracted_data['locations'])
+        total_pricing = len(extracted_data['pricing'])
+        self._print(f"✅ Extracted: {total_contacts} contacts, {total_locations} locations, {total_pricing} pricing entries")
+        
+        return extracted_data
+
+    def convert_excel_to_documents(self, excel_data: Dict) -> List[Document]:
+        """Convert Excel data to LangChain Document format"""
+        documents = []
+        
+        # Convert contacts to document
+        if excel_data.get('contacts'):
+            contact_content = "# Contact Information\n\n"
+            for contact in excel_data['contacts']:
+                source_info = []
+                if 'source_file' in contact:
+                    source_info.append(f"File: {contact['source_file']}")
+                if 'sheet_name' in contact:
+                    source_info.append(f"Sheet: {contact['sheet_name']}")
+                if source_info:
+                    contact_content += f"*Source: {', '.join(source_info)}*\n"
+                
+                for key, value in contact.items():
+                    if key not in ['source_file', 'sheet_name']:
+                        readable_key = key.replace('_', ' ').title()
+                        contact_content += f"**{readable_key}:** {value}\n"
+                contact_content += "\n"
+            
+            documents.append(Document(
+                page_content=contact_content,
+                metadata={
+                    'source': 'excel_contacts',
+                    'document_type': 'contact_information',
+                    'content_length': len(contact_content)
+                }
+            ))
+        
+        # Convert locations to document
+        if excel_data.get('locations'):
+            location_content = "# Location Information\n\n"
+            for location in excel_data['locations']:
+                source_info = []
+                if 'source_file' in location:
+                    source_info.append(f"File: {location['source_file']}")
+                if 'sheet_name' in location:
+                    source_info.append(f"Sheet: {location['sheet_name']}")
+                if source_info:
+                    location_content += f"*Source: {', '.join(source_info)}*\n"
+                
+                for key, value in location.items():
+                    if key not in ['source_file', 'sheet_name']:
+                        readable_key = key.replace('_', ' ').title()
+                        location_content += f"**{readable_key}:** {value}\n"
+                location_content += "\n"
+            
+            documents.append(Document(
+                page_content=location_content,
+                metadata={
+                    'source': 'excel_locations',
+                    'document_type': 'location_information',
+                    'content_length': len(location_content)
+                }
+            ))
+        
+        # Convert pricing to document
+        if excel_data.get('pricing'):
+            pricing_content = "# Pricing Information\n\n"
+            for price_item in excel_data['pricing']:
+                source_info = []
+                if 'source_file' in price_item:
+                    source_info.append(f"File: {price_item['source_file']}")
+                if 'sheet_name' in price_item:
+                    source_info.append(f"Sheet: {price_item['sheet_name']}")
+                if source_info:
+                    pricing_content += f"*Source: {', '.join(source_info)}*\n"
+                
+                for key, value in price_item.items():
+                    if key not in ['source_file', 'sheet_name']:
+                        readable_key = key.replace('_', ' ').title()
+                        pricing_content += f"**{readable_key}:** {value}\n"
+                pricing_content += "\n"
+            
+            documents.append(Document(
+                page_content=pricing_content,
+                metadata={
+                    'source': 'excel_pricing',
+                    'document_type': 'pricing_information',
+                    'content_length': len(pricing_content)
+                }
+            ))
+        
+        return documents
+
+    def ingest_excel_files(self) -> bool:
+        """Ingest Excel files directly from FAQ folder"""
+        self._print("🦁 Leo & Loona Excel FAQ Ingestion")
+        self._print("=" * 50)
+        
+        start_time = time.time()
+        
+        # Step 1: Check environment
+        if not self.check_environment():
+            self._print("\n❌ Environment check failed. Please check your .env file.")
+            return False
+        
+        # Step 2: Check for Excel files
+        excel_files = list(Path(self.faq_folder).glob("*.xlsx"))
+        if not excel_files:
+            self._print(f"\n❌ No Excel files found in {self.faq_folder}")
+            return False
+        
+        self._print(f"✅ Found {len(excel_files)} Excel file(s)")
+        for excel_file in excel_files:
+            file_size = excel_file.stat().st_size
+            self._print(f"   • {excel_file.name} ({file_size:,} bytes)")
+        
+        try:
+            # Step 3: Extract Excel data
+            excel_data = self.extract_excel_data()
+            
+            # Step 4: Convert to documents
+            self._print("\n📋 Converting Excel data to documents...")
+            documents = self.convert_excel_to_documents(excel_data)
+            
+            if not documents:
+                self._print("❌ No documents created from Excel data")
+                return False
+            
+            self._print(f"✅ Created {len(documents)} documents from Excel data")
+            
+            # Show document details
+            total_chars = sum(len(doc.page_content) for doc in documents)
+            self._print(f"📊 Total content: {total_chars:,} characters")
+            
+            # Step 5: Split documents
+            split_docs = self.split_documents(documents)
+            
+            # Step 6: Setup RAG pipeline
+            if not self.setup_rag_pipeline():
+                return False
+            
+            # Step 7: Create embeddings
+            if not self.create_embeddings(split_docs):
+                return False
+            
+            # Step 8: Test ingestion
+            self.test_ingestion()
+            
+            # Final summary
+            total_time = time.time() - start_time
+            
+            self._print(f"\n🎉 EXCEL INGESTION COMPLETE!")
+            self._print("=" * 50)
+            self._print(f"📊 Summary:")
+            self._print(f"   • Excel files processed: {len(excel_files)}")
+            self._print(f"   • Documents created: {len(documents)}")
+            self._print(f"   • Chunks created: {len(split_docs)}")
+            self._print(f"   • Chunk size: {self.chunk_size}")
+            self._print(f"   • Chunk overlap: {self.chunk_overlap}")
+            self._print(f"   • Total time: {total_time:.1f} seconds")
+            
+            self._print(f"\n✅ Your FAQ system is ready with Excel data!")
+            self._print(f"🚀 Run: streamlit run app.py")
+            
+            return True
+            
+        except Exception as e:
+            self._print(f"\n❌ Error during Excel ingestion: {str(e)}")
+            return False
+
+    def ingest_json_file(self, file_path: str) -> bool:
+        """Ingest FAQ data from a JSON file."""
+        self._print("🦁 Leo & Loona JSON FAQ Ingestion")
+        self._print("=" * 50)
+        
+        start_time = time.time()
+
+        # Step 1: Check environment
+        if not self.check_environment():
+            self._print("\n❌ Environment check failed. Please check your .env file.")
+            return False
+
+        # Step 2: Check JSON file
+        self._print(f"📁 Checking JSON file: {file_path}...")
+        if not os.path.exists(file_path):
+            self._print(f"❌ JSON file not found: {file_path}")
+            return False
+        
+        file_size = Path(file_path).stat().st_size
+        self._print(f"✅ Found JSON FAQ file ({file_size:,} bytes)")
+
+        try:
+            # Step 3: Load documents from JSON
+            self._print(f"\n📋 Loading documents from JSON...")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                docs_data = json.load(f)
+            
+            documents = [Document(**doc_data) for doc_data in docs_data]
+            self._print(f"✅ Loaded {len(documents)} documents from JSON")
+
+            # Show document details
+            total_chars = sum(len(doc.page_content) for doc in documents)
+            self._print(f"📊 Total content: {total_chars:,} characters")
+
+            # Step 4: Split documents
+            split_docs = self.split_documents(documents)
+            
+            # Step 5: Setup RAG pipeline
+            if not self.setup_rag_pipeline():
+                return False
+            
+            # Step 6: Create embeddings
+            if not self.create_embeddings(split_docs):
+                return False
+            
+            # Step 7: Test ingestion
+            self.test_ingestion()
+            
+            # Final summary
+            total_time = time.time() - start_time
+            
+            self._print(f"\n🎉 JSON INGESTION COMPLETE!")
+            self._print("=" * 50)
+            self._print(f"📊 Summary:")
+            self._print(f"   • JSON file processed: {Path(file_path).name}")
+            self._print(f"   • Documents loaded: {len(documents)}")
+            self._print(f"   • Chunks created: {len(split_docs)}")
+            self._print(f"   • Total time: {total_time:.1f} seconds")
+            
+            self._print(f"\n✅ Your FAQ system is ready with structured data!")
+            self._print(f"🚀 Run: streamlit run app.py")
+            
+            return True
+            
+        except Exception as e:
+            self._print(f"\n❌ Error during JSON ingestion: {str(e)}")
+            return False
+
     def ingest_markdown_file(self, file_path: str = None) -> bool:
         """Ingest consolidated FAQ markdown file"""
         file_path = file_path or self.markdown_file
@@ -378,43 +691,106 @@ class DocumentIngestor:
     
     def auto_ingest(self) -> bool:
         """
-        Automatically choose best ingestion method based on available files
+        Automatically choose best ingestion method based on available files or force specific method
         """
-        # Check for consolidated markdown first (recommended)
-        if os.path.exists(self.markdown_file):
+        json_file = "./rag_ready_faq/langchain_documents.json"
+        excel_files = list(Path(self.faq_folder).glob("*.xlsx"))
+        
+        # If force_method is specified, use that method
+        if self.force_method:
+            method = self.force_method.lower()
+            self._print(f"🎯 Force method specified: {method}")
+            
+            if method == 'json':
+                if os.path.exists(json_file):
+                    self._print("✨ Using forced JSON ingestion.")
+                    return self.ingest_json_file(json_file)
+                else:
+                    self._print(f"❌ JSON file not found: {json_file}")
+                    return False
+                    
+            elif method == 'excel':
+                if excel_files:
+                    self._print("📊 Using forced Excel ingestion.")
+                    return self.ingest_excel_files()
+                else:
+                    self._print(f"❌ No Excel files found in {self.faq_folder}")
+                    return False
+                    
+            elif method == 'markdown':
+                if os.path.exists(self.markdown_file):
+                    self._print("📝 Using forced markdown ingestion.")
+                    return self.ingest_markdown_file()
+                else:
+                    self._print(f"❌ Markdown file not found: {self.markdown_file}")
+                    return False
+                    
+            elif method == 'docx':
+                self._print("📄 Using forced DOCX ingestion.")
+                return self.ingest_docx_documents()
+                
+            else:
+                self._print(f"❌ Invalid force_method: {method}. Valid options: json, excel, markdown, docx")
+                return False
+        
+        # Auto-selection based on available files (original logic)
+        self._print("🔍 Auto-detecting best ingestion method...")
+        
+        # Check for JSON file first (best quality)
+        if os.path.exists(json_file):
+            self._print("✨ Found structured JSON file! Using this for best quality ingestion.")
+            return self.ingest_json_file(json_file)
+        # Check for Excel files next (structured data)
+        elif excel_files:
+            self._print("📊 Found Excel files! Using Excel data for structured ingestion.")
+            return self.ingest_excel_files()
+        # Check for consolidated markdown next
+        elif os.path.exists(self.markdown_file):
             self._print("📝 Found consolidated FAQ markdown file!")
             return self.ingest_markdown_file()
+        # Fallback to docx
         else:
-            self._print("📄 Using original .docx files (no consolidated markdown found)")
+            self._print("📄 Using original .docx files (no structured files found)")
             return self.ingest_docx_documents()
 
 def main():
-    """Main entry point with interactive mode"""
-    # Create ingestor with default parameters
-    ingestor = DocumentIngestor()
+    """Main entry point for document ingestion."""
+    import argparse
     
-    # Check if we should use markdown file instead
-    markdown_file = "./rag_ready_faq/consolidated_faq.md"
+    parser = argparse.ArgumentParser(description='Leo & Loona FAQ Document Ingestion')
+    parser.add_argument('--method', choices=['json', 'excel', 'markdown', 'docx'], 
+                       help='Force specific ingestion method (default: auto-detect)')
+    parser.add_argument('--chunk-size', type=int, default=2800,
+                       help='Chunk size for document splitting (default: 2800)')
+    parser.add_argument('--chunk-overlap', type=int, default=500,
+                       help='Chunk overlap for document splitting (default: 500)')
+    parser.add_argument('--no-tests', action='store_true',
+                       help='Skip testing after ingestion')
+    parser.add_argument('--quiet', action='store_true',
+                       help='Reduce output verbosity')
     
-    if os.path.exists(markdown_file):
-        print("📝 Found consolidated FAQ markdown file!")
-        print("Choose ingestion method:")
-        print("1. Use consolidated FAQ markdown (recommended)")
-        print("2. Use original .docx files")
-        
-        choice = input("\nEnter choice (1 or 2): ").strip()
-        
-        if choice == "1":
-            success = ingestor.ingest_markdown_file(markdown_file)
-        else:
-            success = ingestor.ingest_docx_documents()
+    args = parser.parse_args()
+    
+    ingestor = DocumentIngestor(
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+        force_method=args.method,
+        run_tests=not args.no_tests,
+        verbose=not args.quiet
+    )
+    
+    if args.method:
+        print(f"🎯 Forced ingestion method: {args.method}")
     else:
-        print("📄 Using original .docx files (no consolidated markdown found)")
-        success = ingestor.ingest_docx_documents()
+        print("🔍 Auto-detecting best ingestion method...")
+    
+    success = ingestor.auto_ingest()
     
     if success:
         print(f"\n🎊 SUCCESS! Your Leo & Loona FAQ system is ready.")
         print(f"   You can now run your Streamlit app to start answering questions.")
+        if args.method:
+            print(f"   Used method: {args.method}")
     else:
         print(f"\n💥 FAILED! Please check the errors above and try again.")
     
