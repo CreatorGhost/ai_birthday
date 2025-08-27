@@ -1,17 +1,26 @@
 # User Profiles
 # Format: Phone: [phone] | Name: [name] | Last_Seen: [timestamp] | Total_Messages: [count]
-# This file tracks unique users and their information
 
-Phone: +971506676212 | Name: Unknown | Last_Seen: 2025-08-17 20:04:03 | Total_Messages: 1
-Phone: +971550701252 | Name: Unknown | Last_Seen: 2025-08-17 20:26:54 | Total_Messages: 1
-Phone: +971552825047 | Name: Unknown | Last_Seen: 2025-08-17 20:40:09 | Total_Messages: 1
-Phone: +971557358667 | Name: Unknown | Last_Seen: 2025-08-17 20:48:23 | Total_Messages: 1
-Phone: +971568553448 | Name: Aditya | Last_Seen: 2025-08-17 20:49:32 | Total_Messages: 2
-Phone: +971520325960 | Name: Unknown | Last_Seen: 2025-08-17 20:53:08 | Total_Messages: 1
-Phone: +971589639098 | Name: Aditya | Last_Seen: 2025-08-17 20:53:27 | Total_Messages: 1
-Phone: +971582668607 | Name: Aditya | Last_Seen: 2025-08-17 20:58:18 | Total_Messages: 3
-Phone: +971500702484 | Name: Aditya | Last_Seen: 2025-08-17 21:07:57 | Total_Messages: 3
-Phone: +971559733350 | Name: Unknown | Last_Seen: 2025-08-21 16:11:29 | Total_Messages: 3
-Phone: +971528156807 | Name: Aditya | Last_Seen: 2025-08-21 16:16:25 | Total_Messages: 3
-Phone: +971502812627 | Name: Unknown | Last_Seen: 2025-08-22 09:14:32 | Total_Messages: 3
-Phone: +971561084086 | Name: Adi | Last_Seen: 2025-08-22 09:16:18 | Total_Messages: 3
+Phone: +971566202354 | Name: Aditya | Last_Seen: 2025-08-22 20:06:53 | Total_Messages: 3
+Phone: +971501234567 | Name: Unknown | Last_Seen: 2025-08-22 20:09:00 | Total_Messages: 2
+Phone: +971589672844 | Name: Adi | Last_Seen: 2025-08-22 20:13:36 | Total_Messages: 3
+Phone: +971544522609 | Name: yamaush | Last_Seen: 2025-08-22 20:17:32 | Total_Messages: 3
+Phone: +971504466845 | Name: Aditya | Last_Seen: 2025-08-25 13:52:04 | Total_Messages: 3
+Phone: +971557308427 | Name: Adi | Last_Seen: 2025-08-27 10:50:12 | Total_Messages: 5
+Phone: +971562524994 | Name: Adi | Last_Seen: 2025-08-27 10:54:06 | Total_Messages: 3
+Phone: +971560075869 | Name: Unknown | Last_Seen: 2025-08-27 10:56:55 | Total_Messages: 1
+Phone: +971527993406 | Name: Unknown | Last_Seen: 2025-08-27 10:57:52 | Total_Messages: 1
+Phone: +971500504681 | Name: Unknown | Last_Seen: 2025-08-27 10:59:22 | Total_Messages: 1
+Phone: +971505727290 | Name: Unknown | Last_Seen: 2025-08-27 11:02:38 | Total_Messages: 3
+Phone: +971587584944 | Name: Sam | Last_Seen: 2025-08-27 11:05:29 | Total_Messages: 3
+Phone: +971523959557 | Name: Julius | Last_Seen: 2025-08-27 11:23:57 | Total_Messages: 3
+Phone: +971523620708 | Name: Julius | Last_Seen: 2025-08-27 11:41:22 | Total_Messages: 3
+Phone: +971551986970 | Name: Sam | Last_Seen: 2025-08-27 11:49:17 | Total_Messages: 2
+Phone: +971524331365 | Name: Jadi | Last_Seen: 2025-08-27 12:09:50 | Total_Messages: 2
+Phone: +971540272752 | Name: Sam | Last_Seen: 2025-08-27 13:07:41 | Total_Messages: 3
+Phone: +971555059282 | Name: Sam | Last_Seen: 2025-08-27 14:02:39 | Total_Messages: 2
+Phone: +971545006172 | Name: Ichigo | Last_Seen: 2025-08-27 14:04:04 | Total_Messages: 2
+Phone: +971505760952 | Name: Jam | Last_Seen: 2025-08-27 14:11:33 | Total_Messages: 2
+Phone: +971583919626 | Name: Kolo | Last_Seen: 2025-08-27 14:26:09 | Total_Messages: 5
+Phone: +971540846770 | Name: Goku | Last_Seen: 2025-08-27 14:30:30 | Total_Messages: 2
+Phone: +971554427453 | Name: Jiren | Last_Seen: 2025-08-27 14:40:14 | Total_Messages: 2

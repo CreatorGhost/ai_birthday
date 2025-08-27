@@ -1069,39 +1069,57 @@ Please let us know which location you're interested in!"""
         
         return 'unknown'
     
-    def _filter_documents_by_location(self, documents: List[Document], target_location: str) -> List[Document]:
+    def _filter_documents_by_location_and_type(self, documents: List[Document], target_location: str, content_type_priority: str = None) -> List[Document]:
         """
-        Filter documents by location metadata
+        Filter documents by location metadata and optionally prioritize content type
         
         Args:
             documents: List of retrieved documents
             target_location: Target location to filter for
+            content_type_priority: Optional content type to prioritize (e.g., 'Infrastructure Information')
             
         Returns:
-            Filtered documents from the specified location
+            Filtered documents from the specified location, optionally prioritized by content type
         """
         if target_location == 'unknown':
             return documents
         
         location_docs = []
         other_docs = []
+        priority_docs = []
         
         for doc in documents:
             doc_location = doc.metadata.get('location', 'UNKNOWN_LOCATION')
+            doc_content_type = doc.metadata.get('content_type', '')
+            
             if doc_location == target_location:
-                location_docs.append(doc)
+                # If we have a content type priority and this doc matches
+                if content_type_priority and doc_content_type == content_type_priority:
+                    priority_docs.append(doc)
+                else:
+                    location_docs.append(doc)
             else:
                 other_docs.append(doc)
         
-        print(f"📍 Location filtering: Found {len(location_docs)} docs from {target_location}, {len(other_docs)} from other locations")
+        total_target_docs = len(priority_docs) + len(location_docs)
+        print(f"📍 Location filtering: Found {total_target_docs} docs from {target_location} ({len(priority_docs)} priority + {len(location_docs)} regular), {len(other_docs)} from other locations")
+        if content_type_priority:
+            print(f"🏗️ Content type priority '{content_type_priority}': {len(priority_docs)} docs match both location and content type")
         
-        # If we have location-specific docs, prioritize them
-        if location_docs:
-            # Return location docs + some other docs for context (max 2 other docs)
-            return location_docs + other_docs[:2]
-        else:
+        # Prioritize: priority docs first, then location docs, then other docs for context
+        filtered_docs = priority_docs + location_docs + other_docs[:2]
+        
+        if not filtered_docs:
             print(f"⚠️ No documents found for {target_location}, returning all documents")
             return documents
+        
+        return filtered_docs
+    
+    def _filter_documents_by_location(self, documents: List[Document], target_location: str) -> List[Document]:
+        """
+        Filter documents by location metadata (backward compatibility)
+        """
+        return self._filter_documents_by_location_and_type(documents, target_location)
     
     def retrieve_documents(self, state: RAGState) -> RAGState:
         """
@@ -1346,15 +1364,23 @@ Please let us know which location you're interested in!"""
         }
     
     def _detect_location_simple(self, question: str) -> str:
-        """Simple location detection without LLM"""
+        """Simple location detection without LLM - returns metadata format - handles typos and variations"""
         question_lower = question.lower()
         
-        if any(keyword in question_lower for keyword in ['dalma']):
-            return "Dalma Mall"
-        elif any(keyword in question_lower for keyword in ['yas']):
-            return "Yas Mall"
-        elif any(keyword in question_lower for keyword in ['festival', 'dubai']):
-            return "Festival City"
+        # Dalma Mall variations and common typos
+        dalma_keywords = ['dalma', 'dallma', 'dalama', 'dalma mall', 'dallma mall', 'abu dhabi dalma', 'abu dhabi dallma']
+        if any(keyword in question_lower for keyword in dalma_keywords):
+            return "DALMA_MALL"
+            
+        # Yas Mall variations and common typos  
+        yas_keywords = ['yas', 'yas mall', 'abu dhabi yas', 'yaas', 'yaas mall']
+        if any(keyword in question_lower for keyword in yas_keywords):
+            return "YAS_MALL"
+            
+        # Festival City Mall variations and common typos
+        festival_keywords = ['festival', 'festival city', 'dubai festival', 'festival mall', 'festiva', 'dubai', 'festivel']
+        if any(keyword in question_lower for keyword in festival_keywords):
+            return "FESTIVAL_CITY"
         else:
             return "General"
     
@@ -1543,8 +1569,14 @@ Respond with only "YES" or "NO":""",
         
         # Initialize user tracking state if not present
         user_phone = state.get("user_phone")
+        manual_phone = state.get("manual_phone")  # Get manual phone from state if passed
+        manual_mall = state.get("manual_mall")    # Get manual mall selection from state if passed
+        
         if not user_phone:
-            user_phone = self.user_tracker.generate_test_phone_number()
+            if manual_phone:
+                user_phone = self.user_tracker.get_phone_number_for_session(manual_phone)
+            else:
+                user_phone = self.user_tracker.generate_test_phone_number()
             # Store phone in state for session consistency
             state["user_phone"] = user_phone
         
@@ -1563,6 +1595,22 @@ Respond with only "YES" or "NO":""",
         # NEW: Handle first interaction immediately - ask for name
         is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
         is_name_response = self.user_tracker.is_name_response(question, chat_history)
+        
+        # Detect park location for conversation context (moved up to ensure it's always defined)
+        # Use manual mall selection if provided, otherwise auto-detect from question
+        if manual_mall:
+            # Convert manual mall selection to location code format
+            mall_to_code_mapping = {
+                "Festival City": "FESTIVAL_CITY",
+                "Dalma Mall": "DALMA_MALL", 
+                "Yas Mall": "YAS_MALL",
+                "General": "General"
+            }
+            detected_location = mall_to_code_mapping.get(manual_mall, "General")
+            print(f"🎯 Using manual mall selection: {manual_mall} → {detected_location}")
+        else:
+            detected_location = self._detect_location_simple(question)
+            print(f"🔍 Auto-detected location from question: {detected_location}")
         
         # Check if we should request name or handle name response
         should_request_name = False
@@ -1588,7 +1636,7 @@ Respond with only "YES" or "NO":""",
                 personalized_greeting = self.user_tracker.generate_personalized_greeting(extracted_name)
                 
                 # Answer the stored question with personalization
-                return self._answer_with_personalization(stored_question, personalized_greeting, user_phone, user_profile, chat_history, name_extraction)
+                return self._answer_with_personalization(stored_question, personalized_greeting, user_phone, user_profile, chat_history, name_extraction, manual_mall)
             else:
                 # No stored question, just greet
                 personalized_intro = f"Thank you, {extracted_name}! 😊 How can I help you with Leo & Loona today?"
@@ -1632,16 +1680,24 @@ Respond with only "YES" or "NO":""",
             user_profile.get("name") and 
             self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": question}])):
             
-            # Create lead in Bitrix with proper categorization
-            lead_result = self.lead_manager.create_chatbot_lead(
-                user_info=user_profile,
-                conversation_history=chat_history + [{"role": "user", "content": question}],
-                category_analysis=category_analysis
-            )
-            
-            # Store lead result for UI display
-            if lead_result:
-                state["lead_created"] = lead_result
+            try:
+                # Create lead in Bitrix with park location
+                lead_result = self.lead_manager.create_chatbot_lead(
+                    user_info=user_profile,
+                    park_location=detected_location
+                )
+                
+                # Store lead result for UI display
+                if lead_result:
+                    state["lead_created"] = lead_result
+                    print(f"✅ Lead created successfully: {lead_result.get('lead_id', 'Unknown ID')}")
+                else:
+                    print("⚠️ Lead creation returned None - check Bitrix configuration")
+            except Exception as e:
+                print(f"❌ Error creating Bitrix lead: {str(e)}")
+                print(f"   User: {user_profile.get('name', 'Unknown')}")
+                print(f"   Location: {detected_location}")
+                # Continue without failing the whole response
         
         # If we should request name for first interaction, return name request
         if should_request_name and name_request_message and is_first_interaction:
@@ -1666,7 +1722,20 @@ Respond with only "YES" or "NO":""",
         
         # Fast retrieval with fewer documents for speed
         documents = self.retriever.invoke(question)
-
+        
+        # Check if this is an infrastructure query and apply intelligent filtering
+        is_infrastructure_query = self._is_infrastructure_query(question)
+        
+        # Apply location and content-type filtering if relevant
+        if is_infrastructure_query:
+            content_type_priority = 'Infrastructure Information'
+            documents = self._filter_documents_by_location_and_type(
+                documents, detected_location, content_type_priority
+            )
+            print(f"🏗️ Applied infrastructure filtering for {detected_location}")
+        else:
+            # Regular location filtering for non-infrastructure queries
+            documents = self._filter_documents_by_location(documents, detected_location)
         
         # Take only top 3 most relevant documents for speed
         top_documents = documents[:3]
@@ -1681,8 +1750,12 @@ Respond with only "YES" or "NO":""",
             chat_context = "\n".join([f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in recent_messages])
         
         # Check if question is about Leo & Loona and detect location
-        location_needed = self._check_location_clarification_needed(question, context)
+        location_needed = self._check_location_clarification_needed(question, context, detected_location)
         is_leo_loona_question = self._is_leo_loona_question(question, context)
+        is_infrastructure_query = self._is_infrastructure_query(question)
+        
+        if is_infrastructure_query:
+            print(f"🏗️ Infrastructure query detected: '{question}' → Location: {detected_location}")
         
         # Add standard opening hours if not in context (temporary solution)
         if "opening" in question.lower() or "hours" in question.lower():
@@ -1814,8 +1887,43 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             "conversation_logged": True
         }
     
-    def _answer_with_personalization(self, stored_question: str, greeting: str, user_phone: str, user_profile: dict, chat_history: list, name_extraction: dict) -> dict:
+    def _answer_with_personalization(self, stored_question: str, greeting: str, user_phone: str, user_profile: dict, chat_history: list, name_extraction: dict, manual_mall: str = None) -> dict:
         """Answer the stored question with personalization"""
+        
+        # IMPORTANT: Detect location from the stored question for proper lead assignment
+        # Use manual mall selection if provided, otherwise auto-detect from stored question
+        if manual_mall:
+            # Convert manual mall selection to location code format
+            mall_to_code_mapping = {
+                "Festival City": "FESTIVAL_CITY",
+                "Dalma Mall": "DALMA_MALL", 
+                "Yas Mall": "YAS_MALL",
+                "General": "General"
+            }
+            detected_location = mall_to_code_mapping.get(manual_mall, "General")
+            print(f"🎯 Using manual mall selection for stored question: {manual_mall} → {detected_location}")
+        else:
+            detected_location = self._detect_location_simple(stored_question)
+            print(f"🎯 Location detected from stored question '{stored_question}': {detected_location}")
+        
+        # Create lead in Bitrix with detected location if lead manager is available
+        if (self.lead_manager and 
+            user_profile.get("name") and 
+            self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": stored_question}])):
+            
+            try:
+                # Create lead with proper location from stored question
+                lead_result = self.lead_manager.create_chatbot_lead(
+                    user_info=user_profile,
+                    park_location=detected_location
+                )
+                
+                if lead_result:
+                    print(f"✅ Lead created for stored question: {lead_result.get('lead_id', 'Unknown ID')}")
+                else:
+                    print("⚠️ Lead creation returned None for stored question")
+            except Exception as e:
+                print(f"❌ Error creating Bitrix lead for stored question: {str(e)}")
         
         # Get documents for the stored question
         documents = self.retriever.invoke(stored_question)
@@ -1823,7 +1931,7 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
         context = "\n\n".join(doc.page_content for doc in top_documents)
         
         # Check location and Leo & Loona relevance for stored question
-        location_needed = self._check_location_clarification_needed(stored_question, context)
+        location_needed = self._check_location_clarification_needed(stored_question, context, detected_location)
         is_leo_loona_question = self._is_leo_loona_question(stored_question, context)
         
         # Add standard opening hours if needed
@@ -1886,27 +1994,50 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
             "amusement park", "theme park", "family park"
         ]
         
+        # Mall location indicators (infrastructure context)
+        mall_location_keywords = [
+            "dalma mall", "yas mall", "festival city", "dalma", "yas", "festival"
+        ]
+        
+        # Infrastructure/facilities keywords that could be Leo & Loona related
+        infrastructure_keywords = [
+            "infrastructure", "facilities", "capacity", "restaurant capacity",
+            "equipment", "layout", "setup", "installation"
+        ]
+        
         # Non-Leo & Loona indicators (Hello Park, etc.)
         other_park_keywords = [
             "hello park", "hello world", "other park", "different park"
         ]
         
-        # General non-park topics
+        # General non-park topics (removed restaurant and shopping mall as they can be Leo & Loona related)
         general_topics = [
-            "weather", "politics", "news", "programming", "cooking",
-            "sports", "movies", "music", "school", "work", "health",
-            "travel", "hotel", "restaurant", "shopping mall"
+            "weather", "politics", "news", "programming", "coding", "software",
+            "sports", "movies", "music", "school", "work", "health", "travel", "hotel"
         ]
         
-        # Check for non-Leo & Loona content
-        for keyword in other_park_keywords + general_topics:
+        # Check for non-Leo & Loona content first
+        for keyword in other_park_keywords:
             if keyword in question_lower:
                 return False
         
-        # Check for Leo & Loona content in question or context
+        # Check for explicit Leo & Loona content
         for keyword in leo_loona_keywords:
             if keyword in question_lower or keyword in context_lower:
                 return True
+        
+        # Check for mall location + infrastructure queries (likely Leo & Loona related)
+        has_mall_location = any(keyword in question_lower for keyword in mall_location_keywords)
+        has_infrastructure = any(keyword in question_lower for keyword in infrastructure_keywords)
+        
+        if has_mall_location and (has_infrastructure or "restaurant" in question_lower or "capacity" in question_lower):
+            return True
+        
+        # Check for general non-park topics only if no mall context
+        if not has_mall_location:
+            for keyword in general_topics:
+                if keyword in question_lower and not any(mall in question_lower for mall in mall_location_keywords):
+                    return False
         
         # If context mentions Leo & Loona, assume it's related
         if "leo" in context_lower or "loona" in context_lower:
@@ -1915,16 +2046,35 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
         # Default to True for ambiguous cases (let the LLM handle it)
         return True
     
-    def _check_location_clarification_needed(self, question: str, context: str) -> bool:
+    def _is_infrastructure_query(self, question: str) -> bool:
+        """
+        Detect if the query is about infrastructure information
+        """
+        question_lower = question.lower()
+        
+        infrastructure_keywords = [
+            "infrastructure", "facilities", "equipment", "layout", "setup", "installation",
+            "technical", "systems", "maintenance", "utilities", "construction", "building",
+            "design", "architecture", "space", "capacity", "specifications", "requirements",
+            "restaurant capacity", "seating", "dining", "food court", "cafeteria", "kitchen"
+        ]
+        
+        return any(keyword in question_lower for keyword in infrastructure_keywords)
+    
+    def _check_location_clarification_needed(self, question: str, context: str, detected_location: str = None) -> bool:
         """
         Fast check if location clarification is needed
         """
         question_lower = question.lower()
         
+        # If we already detected a specific location, no clarification needed
+        if detected_location and detected_location != "General":
+            return False
+        
         # Location-specific keywords that need clarification
         location_keywords = [
             "hours", "opening", "closing", "address", "location", "phone",
-            "contact", "directions", "parking", "nearby", "mall"
+            "contact", "directions", "parking", "nearby", "mall", "infrastructure", "facilities"
         ]
         
         # Check if question mentions location keywords
@@ -1940,13 +2090,15 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
         # Need clarification if asking about location-specific info without specifying location
         return needs_location and not has_location
     
-    def answer_question(self, question: str, chat_history: List[dict] = None) -> dict:
+    def answer_question(self, question: str, chat_history: List[dict] = None, manual_phone: str = None, manual_mall: str = None) -> dict:
         """
         Answer a question using the LangGraph RAG pipeline
         
         Args:
             question: User's question
             chat_history: Previous conversation messages for context
+            manual_phone: Manual phone number for testing (from Streamlit)
+            manual_mall: Manual mall selection to override automatic detection (from Streamlit)
             
         Returns:
             Dictionary with answer and source documents
@@ -1959,11 +2111,15 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
         
         try:
             # Enhanced initial state with user tracking
-            # Use session-consistent phone number
-            session_phone = getattr(self, '_session_phone', None)
-            if not session_phone:
-                session_phone = self.user_tracker.generate_test_phone_number()
-                self._session_phone = session_phone
+            # Use manual phone if provided, otherwise session-consistent phone number
+            if manual_phone:
+                session_phone = self.user_tracker.get_phone_number_for_session(manual_phone)
+                self._session_phone = session_phone  # Update session phone
+            else:
+                session_phone = getattr(self, '_session_phone', None)
+                if not session_phone:
+                    session_phone = self.user_tracker.generate_test_phone_number()
+                    self._session_phone = session_phone
             
             initial_state = {
                 "question": question,
@@ -1980,6 +2136,8 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
                 "enhanced_context": "",
                 # User tracking initialization with consistent phone
                 "user_phone": session_phone,
+                "manual_phone": manual_phone,  # Pass manual phone to graph
+                "manual_mall": manual_mall,  # Pass manual mall selection to graph
                 "user_name": "",
                 "user_profile": {},
                 "name_extraction_result": {},
@@ -2008,9 +2166,16 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
             }
             
         except Exception as e:
+            print(f"❌ RAG Pipeline Error: {str(e)}")
+            print(f"   Question: {question}")
+            print(f"   Error type: {type(e).__name__}")
+            import traceback
+            print(f"   Traceback: {traceback.format_exc()}")
+            
             return {
-                "answer": f"Error processing question: {str(e)}",
-                "source_documents": []
+                "answer": f"I apologize, but I encountered an error processing your question. Please try asking again in a different way, or contact our support team if the issue persists.",
+                "source_documents": [],
+                "error": str(e)
             }
     
     def get_graph_visualization(self):

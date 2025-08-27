@@ -37,6 +37,19 @@ class UserTracker:
         number = ''.join([str(random.randint(0, 9)) for _ in range(7)])
         return f"+971{prefix}{number}"
     
+    def get_phone_number_for_session(self, manual_phone: str = None) -> str:
+        """Get phone number for current session - manual for testing or generated"""
+        if manual_phone and manual_phone.strip():
+            # Use manual phone number provided by user (e.g., from Streamlit input)
+            phone = manual_phone.strip()
+            # Ensure it starts with + if it doesn't already
+            if not phone.startswith('+'):
+                phone = '+' + phone
+            return phone
+        else:
+            # Generate random phone number for testing
+            return self.generate_test_phone_number()
+    
     def extract_name_from_message(self, message: str, conversation_context: List[Dict] = None) -> Dict:
         """Use LLM to extract user name from message"""
         
@@ -241,7 +254,7 @@ Respond with JSON:
         
         conversation_text = " ".join(all_messages)
         
-        prompt = f"""Analyze this conversation to determine if it's related to birthday parties or general park inquiries.
+        prompt_template = """Analyze this conversation to determine if it's related to birthday parties or general park inquiries.
 
 Conversation: "{conversation_text}"
 
@@ -260,18 +273,20 @@ General Inquiries:
 - Safety questions, policies
 
 Respond with JSON:
-{{
+{{{{
     "category": "birthday_party" or "general",
     "confidence": 0.0-1.0,
     "reasoning": "brief explanation",
     "keywords_found": ["list", "of", "relevant", "keywords"]
-}}
+}}}}
 
 Only choose "birthday_party" if clearly related to birthday celebrations."""
+        
+        prompt = prompt_template.format(conversation_text=conversation_text)
 
         try:
-            chain = PromptTemplate.from_template(prompt) | self.llm | StrOutputParser()
-            response = chain.invoke({})
+            # Use the LLM directly since we already formatted the prompt
+            response = self.llm.invoke([{"role": "user", "content": prompt}]).content
             
             # Parse JSON response
             import re

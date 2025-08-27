@@ -178,11 +178,95 @@ def main():
             'last_seen': None
         }
     
+    # Phone number input for testing
+    st.sidebar.subheader("📱 Testing Configuration")
+    phone_input = st.sidebar.text_input(
+        "Phone Number (for testing):",
+        value=st.session_state.user_info.get('phone', ''),
+        placeholder="+971501234567",
+        help="Enter phone number to simulate WhatsApp conversation"
+    )
+    
+    # Update phone number if changed
+    if phone_input and phone_input != st.session_state.user_info.get('phone'):
+        st.session_state.user_info['phone'] = phone_input
+    
     user_info = st.session_state.user_info
     st.sidebar.write(f"**Phone:** {user_info.get('phone', 'Not assigned')}")
     st.sidebar.write(f"**Name:** {user_info.get('name', 'Not collected')}")
     st.sidebar.write(f"**Messages:** {user_info.get('total_messages', 0)}")
     st.sidebar.write(f"**Last Seen:** {user_info.get('last_seen', 'Never')}")
+    
+    # Manual Bitrix save button - SIMPLIFIED
+    if st.sidebar.button("💾 Save Simple Lead to Bitrix", help="Create a simple lead with name, phone, and park"):
+        if user_info.get('phone') and user_info.get('name'):
+            try:
+                from bitrix_integration.lead_manager import LeadManager
+                lead_manager = LeadManager()
+                
+                # Detect park location from recent messages
+                park_location = "General"
+                if st.session_state.messages:
+                    recent_content = " ".join([msg.get('content', '') for msg in st.session_state.messages[-3:]])
+                    if 'dalma' in recent_content.lower():
+                        park_location = "Dalma Mall"
+                    elif 'yas' in recent_content.lower():
+                        park_location = "Yas Mall"
+                    elif 'festival' in recent_content.lower():
+                        park_location = "Festival City"
+                
+                # Create simple lead with just name, phone, park
+                result = lead_manager.create_simple_lead(
+                    name=user_info.get('name'), 
+                    phone=user_info.get('phone'),
+                    park_location=park_location
+                )
+                
+                if result and result.get('success'):
+                    st.sidebar.success(f"✅ Simple lead created!")
+                    st.sidebar.info(f"ID: {result['lead_id']}")
+                    st.sidebar.info(f"Park: {result['park_location']}")
+                else:
+                    st.sidebar.error("❌ Failed to create simple lead")
+                    
+            except Exception as e:
+                st.sidebar.error(f"❌ Error: {str(e)}")
+        else:
+            st.sidebar.warning("⚠️ Need phone and name to create lead")
+    
+    # Add manual park selection for testing
+    st.sidebar.subheader("🏢 Manual Park Selection")
+    manual_park = st.sidebar.selectbox(
+        "Override Park Detection:",
+        ["General", "Dalma Mall", "Yas Mall", "Festival City"],
+        help="Force all chat questions to be treated as from this mall location (overrides automatic detection)"
+    )
+    
+    if manual_park != "General":
+        st.sidebar.info(f"🎯 **Active Override:** All questions will be treated as {manual_park} inquiries, and leads will be assigned to the {manual_park} team.")
+    
+    if st.sidebar.button("💾 Create Lead with Selected Park"):
+        if user_info.get('phone') and user_info.get('name'):
+            try:
+                from bitrix_integration.lead_manager import LeadManager
+                lead_manager = LeadManager()
+                
+                result = lead_manager.create_simple_lead(
+                    name=user_info.get('name'), 
+                    phone=user_info.get('phone'),
+                    park_location=manual_park
+                )
+                
+                if result and result.get('success'):
+                    st.sidebar.success(f"✅ Lead created with {manual_park}!")
+                    st.sidebar.info(f"Lead ID: {result['lead_id']}")
+                else:
+                    st.sidebar.error("❌ Failed to create lead")
+                    
+            except Exception as e:
+                st.sidebar.error(f"❌ Error: {str(e)}")
+        else:
+            st.sidebar.warning("⚠️ Need phone and name")
     
 
 
@@ -212,10 +296,12 @@ def main():
             # Generate assistant response
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
-                    # Show typing indicator and use enhanced pipeline
+                    # Show typing indicator and use enhanced pipeline with manual phone and mall selection
                     result = st.session_state.rag_pipeline.answer_question(
                         prompt, 
-                        chat_history=st.session_state.messages[:-1]  # Exclude current message
+                        chat_history=st.session_state.messages[:-1],  # Exclude current message
+                        manual_phone=st.session_state.user_info.get('phone'),  # Pass manual phone
+                        manual_mall=manual_park if manual_park != "General" else None  # Pass manual mall selection
                     )
                     
                     response = result["answer"]

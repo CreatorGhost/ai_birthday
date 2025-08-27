@@ -285,15 +285,82 @@ class BitrixClient:
         
         return self._make_request('crm.timeline.comment.list', params)
     
+    def get_open_channel_messages(self, communication_value):
+        """
+        Get Open Channel (WhatsApp/Telegram/etc.) messages from ImConnector
+        
+        Args:
+            communication_value (str): ImConnector communication value like "imol|olchat_wa_connector_2|1|971558505328|47"
+        
+        Returns:
+            dict: Open Channel messages response
+        """
+        try:
+            # Parse the ImConnector communication value
+            # Format: imol|connector_id|line_id|external_id|session_id
+            parts = communication_value.split('|')
+            if len(parts) >= 5 and parts[0] == 'imol':
+                connector_id = parts[1]
+                line_id = parts[2]
+                external_id = parts[3]
+                session_id = parts[4]
+                
+                # Try different API methods to get Open Channel messages
+                params = {
+                    'CONNECTOR': connector_id,
+                    'LINE': line_id,
+                    'CHAT_ID': session_id
+                }
+                
+                try:
+                    # Method 1: Try imconnector.send.list (if available)
+                    response = self._make_request('imconnector.send.list', params)
+                    if 'result' in response:
+                        return response
+                except:
+                    pass
+                
+                try:
+                    # Method 2: Try imopenlines.session.get
+                    params = {'SESSION_ID': session_id}
+                    response = self._make_request('imopenlines.session.get', params)
+                    if 'result' in response:
+                        return response
+                except:
+                    pass
+                
+                try:
+                    # Method 3: Try im.chat.get for chat messages
+                    params = {'CHAT_ID': f"chat{session_id}"}
+                    response = self._make_request('im.chat.get', params)
+                    if 'result' in response:
+                        return response
+                except:
+                    pass
+                
+                # Method 4: Try im.message.list for specific chat
+                try:
+                    params = {'CHAT_ID': session_id, 'LIMIT': 100}
+                    response = self._make_request('im.message.list', params)
+                    if 'result' in response:
+                        return response
+                except:
+                    pass
+                
+        except Exception as e:
+            print(f"    Warning: Could not retrieve Open Channel messages: {e}")
+        
+        return None
+    
     def get_lead_conversation_history(self, lead_id):
         """
-        Get complete conversation history for a lead (activities + timeline comments)
+        Get complete conversation history for a lead (activities + timeline comments + Open Channel messages)
         
         Args:
             lead_id (int): Lead ID
         
         Returns:
-            dict: Combined conversation history with activities and comments
+            dict: Combined conversation history with activities, comments, and Open Channel messages
         """
         # Get activities (calls, emails, meetings, etc.)
         activities_response = self.get_lead_activities(lead_id)
@@ -301,12 +368,36 @@ class BitrixClient:
         # Get timeline comments
         comments_response = self.get_lead_timeline_comments(lead_id)
         
+        # Extract Open Channel messages from activities
+        open_channel_messages = []
+        activities = activities_response.get('result', [])
+        
+        for activity in activities:
+            # Look for Open Channel activities
+            if 'Open Channel' in str(activity.get('SUBJECT', '')):
+                communications = activity.get('COMMUNICATIONS', [])
+                for comm in communications:
+                    if comm.get('TYPE') == 'IM' and 'imol|' in comm.get('VALUE', ''):
+                        # This is an Open Channel conversation reference
+                        messages = self.get_open_channel_messages(comm['VALUE'])
+                        if messages:
+                            open_channel_messages.append({
+                                'activity_id': activity.get('ID'),
+                                'activity_subject': activity.get('SUBJECT'),
+                                'activity_date': activity.get('CREATED'),
+                                'communication_value': comm['VALUE'],
+                                'messages': messages,
+                                'customer_info': comm.get('ENTITY_SETTINGS', {})
+                            })
+        
         conversation_history = {
             'lead_id': lead_id,
-            'activities': activities_response.get('result', []),
+            'activities': activities,
             'timeline_comments': comments_response.get('result', []),
-            'total_activities': len(activities_response.get('result', [])),
-            'total_comments': len(comments_response.get('result', []))
+            'open_channel_messages': open_channel_messages,
+            'total_activities': len(activities),
+            'total_comments': len(comments_response.get('result', [])),
+            'total_open_channel_conversations': len(open_channel_messages)
         }
         
         return conversation_history

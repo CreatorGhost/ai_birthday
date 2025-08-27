@@ -5,8 +5,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 class DocumentProcessor:
     """Handles document loading and processing from FAQ folder using LangChain loaders"""
     
-    def __init__(self, faq_folder_path):
+    def __init__(self, faq_folder_path, infrastructure_folder_path=None):
         self.faq_folder_path = faq_folder_path
+        self.infrastructure_folder_path = infrastructure_folder_path
     
     def _extract_location_from_filename(self, filename):
         """Extract location information from filename"""
@@ -43,6 +44,8 @@ class DocumentProcessor:
             return 'Waiver Information'
         elif 'PARK RULES' in filename_upper or 'RULES' in filename_upper:
             return 'Park Rules'
+        elif 'INFRASTRUCTURE' in filename_upper:
+            return 'Infrastructure Information'
         else:
             return 'General Information'
     
@@ -61,11 +64,23 @@ class DocumentProcessor:
         # Add location keywords for better search
         location_keywords = ""
         if location_code == 'DALMA_MALL':
-            location_keywords = "Keywords: Dalma Mall, Abu Dhabi, Dalma\n"
+            location_keywords = "Keywords: Dalma Mall, Abu Dhabi, Dalma"
+            if content_type == 'Infrastructure Information':
+                location_keywords += ", infrastructure, facilities, equipment, layout\n"
+            else:
+                location_keywords += "\n"
         elif location_code == 'YAS_MALL':
-            location_keywords = "Keywords: Yas Mall, Abu Dhabi, Yas, POD holder discounts\n"
+            location_keywords = "Keywords: Yas Mall, Abu Dhabi, Yas, POD holder discounts"
+            if content_type == 'Infrastructure Information':
+                location_keywords += ", infrastructure, facilities, equipment, layout\n"
+            else:
+                location_keywords += "\n"
         elif location_code == 'FESTIVAL_CITY':
-            location_keywords = "Keywords: Festival City, Dubai, Festival\n"
+            location_keywords = "Keywords: Festival City, Dubai, Festival"
+            if content_type == 'Infrastructure Information':
+                location_keywords += ", infrastructure, facilities, equipment, layout\n"
+            else:
+                location_keywords += "\n"
         elif location_code == 'GENERAL':
             location_keywords = "Keywords: All locations, General information, Leo Loona\n"
         
@@ -199,3 +214,79 @@ class DocumentProcessor:
     def get_documents_by_filename(self, documents, filename):
         """Get all document chunks by filename - useful for deletion"""
         return [doc for doc in documents if doc.metadata.get('filename') == filename]
+    
+    def load_docx_from_folder(self, folder_path):
+        """Load all .docx files from a specific folder with enhanced location context"""
+        documents = []
+        
+        if not os.path.exists(folder_path):
+            print(f"Warning: Folder not found: {folder_path}")
+            return documents
+        
+        for filename in os.listdir(folder_path):
+            if filename.endswith('.docx') and not filename.startswith('~'):
+                file_path = os.path.join(folder_path, filename)
+                try:
+                    # Use LangChain's UnstructuredWordDocumentLoader
+                    loader = UnstructuredWordDocumentLoader(file_path)
+                    docs = loader.load()
+                    
+                    # Extract location and content type from filename
+                    location_code = self._extract_location_from_filename(filename)
+                    content_type = self._get_content_type_from_filename(filename)
+                    location_display = self._get_location_display_name(location_code)
+                    
+                    # Process each document and enhance metadata
+                    for doc in docs:
+                        if doc.page_content.strip():
+                            # Enhance content with location context
+                            enhanced_content = self._enhance_content_with_context(
+                                doc.page_content, location_code, content_type, filename
+                            )
+                            
+                            # Update document content
+                            doc.page_content = enhanced_content
+                            
+                            # Enhanced metadata
+                            doc.metadata.update({
+                                'filename': filename,
+                                'file_path': file_path,
+                                'source': filename,
+                                'document_type': 'docx',
+                                'loader_type': 'UnstructuredWordDocumentLoader',
+                                'location': location_code,
+                                'location_display': location_display,
+                                'content_type': content_type,
+                                'enhanced': True,  # Flag to indicate enhanced processing
+                                'source_folder': os.path.basename(folder_path)  # Track source folder
+                            })
+                            
+                            documents.append(doc)
+                            print(f"Enhanced: {filename} [{location_display}] - {content_type} ({len(enhanced_content)} chars)")
+                        
+                except Exception as e:
+                    print(f"Error loading {filename}: {str(e)}")
+        
+        return documents
+    
+    def load_all_docx_files(self):
+        """Load all .docx files from FAQ folder and Infrastructure folder if specified"""
+        all_documents = []
+        
+        # Load FAQ documents
+        print(f"Loading FAQ documents from: {self.faq_folder_path}")
+        faq_documents = self.load_docx_from_folder(self.faq_folder_path)
+        all_documents.extend(faq_documents)
+        
+        # Load Infrastructure documents if path is specified
+        if self.infrastructure_folder_path:
+            print(f"Loading Infrastructure documents from: {self.infrastructure_folder_path}")
+            infra_documents = self.load_docx_from_folder(self.infrastructure_folder_path)
+            all_documents.extend(infra_documents)
+        
+        print(f"Successfully loaded {len(all_documents)} enhanced documents total")
+        print(f"  - FAQ documents: {len(faq_documents)}")
+        if self.infrastructure_folder_path:
+            print(f"  - Infrastructure documents: {len(infra_documents)}")
+        
+        return all_documents

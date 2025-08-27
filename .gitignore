@@ -1,5 +1,11 @@
 # Environment variables
 .env
+conversation_data
+Park infrastructure
+user_data
+test*
+*test*
+./user_data
 .env.local
 .env.development.local
 .env.test.local

@@ -36,6 +36,7 @@ class DocumentIngestor:
         chunk_size: int = 2800,
         chunk_overlap: int = 500,
         faq_folder: str = "./FAQ",
+        infrastructure_folder: str = "./Park infrastructure",
         markdown_file: str = "./rag_ready_faq/consolidated_faq.md",
         test_questions: Optional[List[str]] = None,
         run_tests: bool = True,
@@ -49,6 +50,7 @@ class DocumentIngestor:
             chunk_size: Size of text chunks for document splitting
             chunk_overlap: Overlap between chunks
             faq_folder: Path to FAQ documents folder
+            infrastructure_folder: Path to Park Infrastructure documents folder
             markdown_file: Path to consolidated markdown file
             test_questions: List of questions for testing ingestion
             run_tests: Whether to run tests after ingestion
@@ -58,16 +60,19 @@ class DocumentIngestor:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.faq_folder = faq_folder
+        self.infrastructure_folder = infrastructure_folder
         self.markdown_file = markdown_file
         self.run_tests = run_tests
         self.verbose = verbose
         self.force_method = force_method
         
-        # Default test questions
+        # Default test questions including infrastructure
         self.test_questions = test_questions or [
             "What are the contact details for Leo & Loona?",
             "What are the pricing options?",
-            "Tell me about the rules and regulations"
+            "Tell me about the rules and regulations",
+            "What infrastructure does Yas Mall have?",
+            "Tell me about the facilities at Dalma Mall"
         ]
         
         # Initialize components
@@ -130,6 +135,28 @@ class DocumentIngestor:
         
         return True, docx_files
     
+    def check_infrastructure_documents(self) -> bool:
+        """Check if Infrastructure documents exist"""
+        self._print(f"🏗️ Checking Infrastructure documents in {self.infrastructure_folder}...")
+        
+        if not os.path.exists(self.infrastructure_folder):
+            self._print(f"❌ Infrastructure folder not found: {self.infrastructure_folder}")
+            return False
+        
+        # Get all .docx files
+        docx_files = list(Path(self.infrastructure_folder).glob("*.docx"))
+        
+        if not docx_files:
+            self._print(f"❌ No .docx files found in {self.infrastructure_folder}")
+            return False
+        
+        self._print(f"✅ Found {len(docx_files)} Infrastructure document(s):")
+        for doc_file in docx_files:
+            file_size = doc_file.stat().st_size
+            self._print(f"   • {doc_file.name} ({file_size:,} bytes)")
+        
+        return True
+    
     def check_markdown_file(self, file_path: str = None) -> bool:
         """Check if consolidated FAQ markdown file exists"""
         file_path = file_path or self.markdown_file
@@ -147,7 +174,7 @@ class DocumentIngestor:
     def initialize_components(self):
         """Initialize DocumentProcessor and RAGPipeline"""
         if not self.doc_processor:
-            self.doc_processor = DocumentProcessor(self.faq_folder)
+            self.doc_processor = DocumentProcessor(self.faq_folder, self.infrastructure_folder)
         
         if not self.rag_pipeline:
             self.rag_pipeline = RAGPipeline()
@@ -614,9 +641,9 @@ class DocumentIngestor:
             return False
     
     def ingest_docx_documents(self) -> bool:
-        """Ingest DOCX documents from FAQ folder"""
-        self._print("🦁 Leo & Loona Document Ingestion")
-        self._print("=" * 50)
+        """Ingest DOCX documents from FAQ folder and Park Infrastructure folder"""
+        self._print("🦁 Leo & Loona Document Ingestion (FAQ + Infrastructure)")
+        self._print("=" * 60)
         
         start_time = time.time()
         
@@ -625,18 +652,33 @@ class DocumentIngestor:
             self._print("\n❌ Environment check failed. Please check your .env file.")
             return False
         
-        # Step 2: Check documents
+        # Step 2: Check FAQ documents
         docs_exist, doc_files = self.check_documents()
-        if not docs_exist:
-            self._print("\n❌ Document check failed. Please ensure FAQ documents exist.")
+        
+        # Step 3: Check Infrastructure documents
+        infrastructure_docs_exist = self.check_infrastructure_documents()
+        
+        # We need at least one type of document
+        if not docs_exist and not infrastructure_docs_exist:
+            self._print("\n❌ No documents found in either FAQ or Infrastructure folders.")
             return False
         
+        if not docs_exist:
+            self._print("\n⚠️ Warning: No FAQ .docx documents found, using Infrastructure documents only")
+        if not infrastructure_docs_exist:
+            self._print("\n⚠️ Warning: No Infrastructure documents found, using FAQ documents only")
+        
+        if infrastructure_docs_exist:
+            self._print(f"✅ Infrastructure documents found in {self.infrastructure_folder}")
+        if docs_exist:
+            self._print(f"✅ FAQ documents found in {self.faq_folder}")
+        
         try:
-            # Step 3: Load documents
-            self._print(f"\n📋 Loading {len(doc_files)} documents...")
+            # Step 4: Load documents from both folders
+            self._print(f"\n📋 Loading documents from FAQ and Infrastructure folders...")
             
             self.initialize_components()
-            documents = self.doc_processor.load_docx_files()
+            documents = self.doc_processor.load_all_docx_files()
             
             if not documents:
                 self._print("❌ Failed to load documents")
@@ -665,17 +707,24 @@ class DocumentIngestor:
             # Final summary
             total_time = time.time() - start_time
             
+            # Count FAQ vs Infrastructure documents
+            faq_docs = [doc for doc in documents if doc.metadata.get('source_folder') == 'FAQ']
+            infra_docs = [doc for doc in documents if doc.metadata.get('source_folder') == 'Park infrastructure']
+            
             self._print(f"\n🎉 INGESTION COMPLETE!")
-            self._print("=" * 50)
+            self._print("=" * 60)
             self._print(f"📊 Summary:")
-            self._print(f"   • Documents processed: {len(documents)}")
+            self._print(f"   • Total documents processed: {len(documents)}")
+            self._print(f"     - FAQ documents: {len(faq_docs)}")
+            self._print(f"     - Infrastructure documents: {len(infra_docs)}")
             self._print(f"   • Chunks created: {len(split_docs)}")
             self._print(f"   • Chunk size: {self.chunk_size}")
             self._print(f"   • Chunk overlap: {self.chunk_overlap}")
             self._print(f"   • Total time: {total_time:.1f} seconds")
             self._print(f"   • Average time per document: {total_time/len(documents):.1f}s")
             
-            self._print(f"\n✅ Your enhanced FAQ system is ready!")
+            self._print(f"\n✅ Your enhanced FAQ + Infrastructure system is ready!")
+            self._print(f"🏗️ Mall-specific infrastructure queries are now supported!")
             self._print(f"🚀 Run: streamlit run app.py")
             
             return True
@@ -757,13 +806,15 @@ def main():
     """Main entry point for document ingestion."""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Leo & Loona FAQ Document Ingestion')
+    parser = argparse.ArgumentParser(description='Leo & Loona FAQ + Infrastructure Document Ingestion')
     parser.add_argument('--method', choices=['json', 'excel', 'markdown', 'docx'], 
                        help='Force specific ingestion method (default: auto-detect)')
     parser.add_argument('--chunk-size', type=int, default=2800,
                        help='Chunk size for document splitting (default: 2800)')
     parser.add_argument('--chunk-overlap', type=int, default=500,
                        help='Chunk overlap for document splitting (default: 500)')
+    parser.add_argument('--infrastructure-folder', type=str, default='./Park infrastructure',
+                       help='Path to Park Infrastructure folder (default: ./Park infrastructure)')
     parser.add_argument('--no-tests', action='store_true',
                        help='Skip testing after ingestion')
     parser.add_argument('--quiet', action='store_true',
@@ -774,6 +825,7 @@ def main():
     ingestor = DocumentIngestor(
         chunk_size=args.chunk_size,
         chunk_overlap=args.chunk_overlap,
+        infrastructure_folder=args.infrastructure_folder,
         force_method=args.method,
         run_tests=not args.no_tests,
         verbose=not args.quiet
