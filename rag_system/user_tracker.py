@@ -378,7 +378,17 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                 if f"Phone: {phone}" in line:
                     # Parse existing profile
                     parts = line.strip().split(' | ')
-                    profile = {"phone": phone, "name": None, "last_seen": None, "total_messages": 0}
+                    profile = {
+                        "phone": phone, 
+                        "name": None, 
+                        "last_seen": None, 
+                        "total_messages": 0,
+                        "bitrix_lead_id": None,
+                        "lead_created_at": None,
+                        "lead_updated_at": None,
+                        "original_park_location": None,
+                        "current_park_location": None
+                    }
                     
                     for part in parts:
                         if part.startswith("Name: "):
@@ -388,11 +398,34 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                             profile["last_seen"] = part.replace("Last_Seen: ", "").strip()
                         elif part.startswith("Total_Messages: "):
                             profile["total_messages"] = int(part.replace("Total_Messages: ", "").strip())
+                        elif part.startswith("Lead_ID: "):
+                            lead_id = part.replace("Lead_ID: ", "").strip()
+                            profile["bitrix_lead_id"] = lead_id if lead_id != "None" else None
+                        elif part.startswith("Lead_Created: "):
+                            profile["lead_created_at"] = part.replace("Lead_Created: ", "").strip()
+                        elif part.startswith("Lead_Updated: "):
+                            profile["lead_updated_at"] = part.replace("Lead_Updated: ", "").strip()
+                        elif part.startswith("Original_Park: "):
+                            park = part.replace("Original_Park: ", "").strip()
+                            profile["original_park_location"] = park if park != "None" else None
+                        elif part.startswith("Current_Park: "):
+                            park = part.replace("Current_Park: ", "").strip()
+                            profile["current_park_location"] = park if park != "None" else None
                     
                     return profile
             
             # New user
-            return {"phone": phone, "name": None, "last_seen": None, "total_messages": 0}
+            return {
+                "phone": phone, 
+                "name": None, 
+                "last_seen": None, 
+                "total_messages": 0,
+                "bitrix_lead_id": None,
+                "lead_created_at": None,
+                "lead_updated_at": None,
+                "original_park_location": None,  # Track the first park they were assigned to
+                "current_park_location": None    # Track current park (can be updated)
+            }
             
         except Exception as e:
             print(f"Error reading user profile: {e}")
@@ -422,7 +455,7 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                         if name:
                             current_profile["name"] = name
                         
-                        profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: {current_profile['total_messages']}\n"
+                        profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: {current_profile['total_messages']} | Lead_ID: {current_profile.get('bitrix_lead_id', 'None')} | Lead_Created: {current_profile.get('lead_created_at', 'None')} | Lead_Updated: {current_profile.get('lead_updated_at', 'None')} | Original_Park: {current_profile.get('original_park_location', 'None')} | Current_Park: {current_profile.get('current_park_location', 'None')}\n"
                         profiles.append(profile_line)
                     else:
                         profiles.append(line)
@@ -430,7 +463,7 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
             # If user not found, add new profile
             user_found = any(f"Phone: {phone}" in line for line in profiles if not line.startswith('#'))
             if not user_found:
-                profile_line = f"Phone: {phone} | Name: {name or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: 1\n"
+                profile_line = f"Phone: {phone} | Name: {name or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: 1 | Lead_ID: None | Lead_Created: None | Lead_Updated: None | Original_Park: None | Current_Park: None\n"
                 profiles.append(profile_line)
             
             # Write back to file
@@ -439,6 +472,81 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                 
         except Exception as e:
             print(f"Error updating user profile: {e}")
+    
+    def update_user_lead_info(self, phone: str, lead_id: str, action: str = "created", park_location: str = None):
+        """Update user profile with Bitrix lead information and track park location"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        try:
+            # Get current profile
+            current_profile = self.get_user_profile(phone)
+            
+            # Update lead information
+            if action == "created":
+                current_profile["bitrix_lead_id"] = lead_id
+                current_profile["lead_created_at"] = timestamp
+                current_profile["lead_updated_at"] = timestamp
+                
+                # Track park location for first-time lead creation
+                if park_location and park_location != "General":
+                    current_profile["original_park_location"] = park_location
+                    current_profile["current_park_location"] = park_location
+                    print(f"📝 Recorded lead creation: User {phone} → Lead {lead_id} → Park: {park_location}")
+                else:
+                    print(f"📝 Recorded lead creation: User {phone} → Lead {lead_id}")
+                    
+            elif action == "updated":
+                current_profile["lead_updated_at"] = timestamp
+                
+                # Update current park location if provided (but keep original)
+                if park_location and park_location != "General":
+                    current_profile["current_park_location"] = park_location
+                    print(f"📝 Recorded lead update: User {phone} → Lead {lead_id} → New Park: {park_location}")
+                else:
+                    print(f"📝 Recorded lead update: User {phone} → Lead {lead_id}")
+            
+            # Read existing profiles
+            profiles = []
+            user_found = False
+            
+            if os.path.exists(self.profiles_file):
+                with open(self.profiles_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                
+                for line in lines:
+                    if line.startswith('#') or not line.strip():
+                        profiles.append(line)
+                        continue
+                    
+                    if f"Phone: {phone}" in line:
+                        # Update the profile line with new lead info
+                        profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {current_profile.get('last_seen', 'None')} | Total_Messages: {current_profile.get('total_messages', 0)} | Lead_ID: {current_profile.get('bitrix_lead_id', 'None')} | Lead_Created: {current_profile.get('lead_created_at', 'None')} | Lead_Updated: {current_profile.get('lead_updated_at', 'None')} | Original_Park: {current_profile.get('original_park_location', 'None')} | Current_Park: {current_profile.get('current_park_location', 'None')}\n"
+                        profiles.append(profile_line)
+                        user_found = True
+                    else:
+                        profiles.append(line)
+            
+            # If user not found in file, create new entry
+            if not user_found:
+                profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {current_profile.get('last_seen', timestamp)} | Total_Messages: {current_profile.get('total_messages', 0)} | Lead_ID: {current_profile.get('bitrix_lead_id', 'None')} | Lead_Created: {current_profile.get('lead_created_at', 'None')} | Lead_Updated: {current_profile.get('lead_updated_at', 'None')} | Original_Park: {current_profile.get('original_park_location', 'None')} | Current_Park: {current_profile.get('current_park_location', 'None')}\n"
+                profiles.append(profile_line)
+                print(f"📝 Created new profile entry for {phone} with lead {lead_id}")
+            
+            # Write back to file
+            with open(self.profiles_file, 'w', encoding='utf-8') as f:
+                f.writelines(profiles)
+                
+        except Exception as e:
+            print(f"Error updating user lead info: {e}")
+    
+    def has_existing_lead(self, phone: str) -> bool:
+        """Check if user already has a Bitrix lead created"""
+        try:
+            profile = self.get_user_profile(phone)
+            return profile.get("bitrix_lead_id") is not None
+        except Exception as e:
+            print(f"Error checking existing lead: {e}")
+            return False
     
     def get_conversation_summary(self, phone: str) -> str:
         """Get a summary of conversations for this user"""

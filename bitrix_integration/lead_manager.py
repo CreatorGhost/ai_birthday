@@ -367,13 +367,126 @@ class LeadManager:
 
         # Create lead if:
         # 1. We have user's name
-        # 2. User has engaged in meaningful conversation (2+ messages)
-        # 3. Not already created for this user recently
+        # 2. User has engaged in meaningful conversation (2+ messages)  
+        # 3. NOT already created for this user (prevents duplicates)
 
         has_name = bool(user_info.get('name'))
         meaningful_conversation = len(conversation_history) >= 2
+        no_existing_lead = user_info.get('bitrix_lead_id') is None
+        
+        should_create = has_name and meaningful_conversation and no_existing_lead
+        
+        if not should_create:
+            if not has_name:
+                print(f"🚫 Not creating lead: No name yet")
+            elif not meaningful_conversation:
+                print(f"🚫 Not creating lead: Only {len(conversation_history)} messages")
+            elif not no_existing_lead:
+                existing_lead_id = user_info.get('bitrix_lead_id')
+                print(f"🚫 Not creating lead: User already has lead {existing_lead_id}")
 
-        return has_name and meaningful_conversation
+        return should_create
+
+    def update_existing_lead(self, user_info: Dict, park_location: str = None) -> Optional[Dict]:
+        """Update an existing lead with new information"""
+        
+        if not self.client:
+            print("Bitrix client not available - lead not updated")
+            return None
+            
+        lead_id = user_info.get('bitrix_lead_id')
+        if not lead_id:
+            print("❌ No existing lead ID found for user")
+            return None
+            
+        try:
+            name = user_info.get('name', 'Web Visitor')
+            phone = user_info.get('phone', '')
+            
+            # Prepare update data
+            update_data = {}
+            
+            # Update name if it changed
+            if name and name != 'Web Visitor':
+                update_data['NAME'] = name
+                update_data['TITLE'] = f"{park_location} - {name}" if park_location else f"General - {name}"
+            
+            # Update park location if provided and different
+            if park_location:
+                park_fields = self._get_park_field_values(park_location)
+                if park_fields:
+                    update_data.update(park_fields)
+                    
+                # Update assignment if park changed
+                assignment_info = self.get_assigned_user_for_mall(park_location)
+                if assignment_info:
+                    update_data['ASSIGNED_BY_ID'] = assignment_info['user_id']
+                    update_data['COMMENTS'] = f"AI Chatbot Lead - {park_location} inquiry for {name}\nAssigned to: {assignment_info['user_name']} ({assignment_info['team_name']})\nUpdated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            
+            # Only update if we have something to update
+            if not update_data:
+                print(f"ℹ️ No updates needed for lead {lead_id}")
+                return None
+                
+            print(f"🔄 Updating lead {lead_id} with data: {update_data}")
+            
+            # Update lead in Bitrix  
+            response = self.client.update_lead(lead_id, update_data)
+            
+            if response and response.get('result'):
+                print(f"✅ Lead {lead_id} updated successfully")
+                return {
+                    'lead_id': lead_id,
+                    'action': 'updated',
+                    'name': name,
+                    'phone': phone,
+                    'park_location': park_location,
+                    'updated_fields': list(update_data.keys())
+                }
+            else:
+                print(f"❌ Failed to update lead {lead_id}: {response}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error updating lead {lead_id}: {str(e)}")
+            return None
+
+    def should_update_lead(self, user_info: Dict, new_park_location: str = None) -> bool:
+        """Determine if existing lead should be updated with new information"""
+        
+        # Update if:
+        # 1. User has an existing lead
+        # 2. New park location is SPECIFICALLY mentioned and DIFFERENT from current
+        # 3. Do NOT update for "General" or same park location
+        
+        has_lead = user_info.get('bitrix_lead_id') is not None
+        
+        if not has_lead:
+            return False
+        
+        # Do NOT update if new location is "General" - this usually means
+        # the user asked a follow-up question without mentioning a mall
+        if new_park_location == "General":
+            print(f"🚫 Not updating lead: General location detected (likely follow-up question)")
+            return False
+            
+        # Get current park location from user profile
+        current_park = user_info.get('current_park_location')
+        original_park = user_info.get('original_park_location')
+        
+        # Do NOT update if new location is same as current or original
+        if new_park_location == current_park or new_park_location == original_park:
+            print(f"🚫 Not updating lead: Same park location '{new_park_location}' (current: {current_park})")
+            return False
+            
+        # Only update if we have a specific mall location that's DIFFERENT
+        should_update = new_park_location is not None and new_park_location != "General"
+        
+        if should_update:
+            lead_id = user_info.get('bitrix_lead_id')
+            print(f"🔄 Should update lead {lead_id}: Different park location '{new_park_location}' (was: {current_park or original_park})")
+        
+        return should_update
 
     def test_connection(self) -> bool:
         """Test Bitrix connection"""

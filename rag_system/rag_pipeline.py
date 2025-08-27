@@ -1675,26 +1675,45 @@ Respond with only "YES" or "NO":""",
         # Analyze conversation for Bitrix lead categorization
         category_analysis = self.user_tracker.analyze_conversation_category(chat_history, question)
         
-        # Check if we should create a lead in Bitrix
-        if (self.lead_manager and 
-            user_profile.get("name") and 
-            self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": question}])):
-            
+        # Handle Bitrix lead management (create new OR update existing)
+        if self.lead_manager and user_profile.get("name"):
             try:
-                # Create lead in Bitrix with park location
-                lead_result = self.lead_manager.create_chatbot_lead(
-                    user_info=user_profile,
-                    park_location=detected_location
-                )
+                lead_result = None
                 
-                # Store lead result for UI display
-                if lead_result:
-                    state["lead_created"] = lead_result
-                    print(f"✅ Lead created successfully: {lead_result.get('lead_id', 'Unknown ID')}")
-                else:
-                    print("⚠️ Lead creation returned None - check Bitrix configuration")
+                # Check if we should create a new lead
+                if self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": question}]):
+                    # Create new lead
+                    lead_result = self.lead_manager.create_chatbot_lead(
+                        user_info=user_profile,
+                        park_location=detected_location
+                    )
+                    
+                    if lead_result:
+                        # Update user profile with lead information including park location
+                        self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                        state["lead_created"] = lead_result
+                        print(f"✅ Lead created successfully: {lead_result.get('lead_id', 'Unknown ID')}")
+                    else:
+                        print("⚠️ Lead creation returned None - check Bitrix configuration")
+                        
+                # Check if we should update an existing lead
+                elif self.lead_manager.should_update_lead(user_profile, detected_location):
+                    # Update existing lead
+                    lead_result = self.lead_manager.update_existing_lead(
+                        user_info=user_profile,
+                        park_location=detected_location
+                    )
+                    
+                    if lead_result:
+                        # Update user profile with update timestamp and new park location
+                        self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "updated", detected_location)
+                        state["lead_updated"] = lead_result
+                        print(f"✅ Lead updated successfully: {lead_result.get('lead_id', 'Unknown ID')}")
+                    else:
+                        print("⚠️ Lead update returned None")
+                        
             except Exception as e:
-                print(f"❌ Error creating Bitrix lead: {str(e)}")
+                print(f"❌ Error managing Bitrix lead: {str(e)}")
                 print(f"   User: {user_profile.get('name', 'Unknown')}")
                 print(f"   Location: {detected_location}")
                 # Continue without failing the whole response
@@ -1906,24 +1925,43 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             detected_location = self._detect_location_simple(stored_question)
             print(f"🎯 Location detected from stored question '{stored_question}': {detected_location}")
         
-        # Create lead in Bitrix with detected location if lead manager is available
-        if (self.lead_manager and 
-            user_profile.get("name") and 
-            self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": stored_question}])):
-            
+        # Handle Bitrix lead management for stored question (create new OR update existing)
+        if self.lead_manager and user_profile.get("name"):
             try:
-                # Create lead with proper location from stored question
-                lead_result = self.lead_manager.create_chatbot_lead(
-                    user_info=user_profile,
-                    park_location=detected_location
-                )
+                lead_result = None
                 
-                if lead_result:
-                    print(f"✅ Lead created for stored question: {lead_result.get('lead_id', 'Unknown ID')}")
-                else:
-                    print("⚠️ Lead creation returned None for stored question")
+                # Check if we should create a new lead
+                if self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": stored_question}]):
+                    # Create new lead with proper location from stored question
+                    lead_result = self.lead_manager.create_chatbot_lead(
+                        user_info=user_profile,
+                        park_location=detected_location
+                    )
+                    
+                    if lead_result:
+                        # Update user profile with lead information including park location
+                        self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                        print(f"✅ Lead created for stored question: {lead_result.get('lead_id', 'Unknown ID')}")
+                    else:
+                        print("⚠️ Lead creation returned None for stored question")
+                        
+                # Check if we should update an existing lead  
+                elif self.lead_manager.should_update_lead(user_profile, detected_location):
+                    # Update existing lead with location from stored question
+                    lead_result = self.lead_manager.update_existing_lead(
+                        user_info=user_profile,
+                        park_location=detected_location
+                    )
+                    
+                    if lead_result:
+                        # Update user profile with update timestamp and new park location
+                        self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "updated", detected_location)
+                        print(f"✅ Lead updated for stored question: {lead_result.get('lead_id', 'Unknown ID')}")
+                    else:
+                        print("⚠️ Lead update returned None for stored question")
+                        
             except Exception as e:
-                print(f"❌ Error creating Bitrix lead for stored question: {str(e)}")
+                print(f"❌ Error managing Bitrix lead for stored question: {str(e)}")
         
         # Get documents for the stored question
         documents = self.retriever.invoke(stored_question)
