@@ -45,6 +45,12 @@ def main():
     st.title("🦁 Leo & Loona Magical Assistant")
     st.write("Welcome to our magical family amusement park! Ask me anything about Leo & Loona and I'll help make your visit absolutely wonderful! ✨")
     
+    # Clear any problematic cached state
+    if st.button("🔄 Clear Cache", help="Click if you see any widget errors"):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
+    
     # Initialize session state
     if 'messages' not in st.session_state:
         st.session_state.messages = []
@@ -169,33 +175,42 @@ def main():
     # User Information Panel (NEW)
     st.sidebar.header("👤 User Information")
     
-    # Initialize user info in session state
+    # Initialize user info in session state with auto-generated phone
     if 'user_info' not in st.session_state:
+        # Generate random phone number automatically
+        import random
+        random_phone = f"+97155{random.randint(1000000, 9999999)}"
         st.session_state.user_info = {
-            'phone': None,
+            'phone': random_phone,  # Auto-generated phone
             'name': None,
             'total_messages': 0,
-            'last_seen': None
+            'last_seen': None,
+            'bitrix_lead_id': None  # Track if lead already created
         }
     
-    # Phone number input for testing
-    st.sidebar.subheader("📱 Testing Configuration")
-    phone_input = st.sidebar.text_input(
-        "Phone Number (for testing):",
+    # Phone number display (auto-generated)
+    st.sidebar.subheader("📱 Auto-Generated Session")
+    st.sidebar.text_input(
+        "Phone Number (auto-generated):",
         value=st.session_state.user_info.get('phone', ''),
-        placeholder="+971501234567",
-        help="Enter phone number to simulate WhatsApp conversation"
+        disabled=True,
+        help="Automatically generated phone number for this session"
     )
     
-    # Update phone number if changed
-    if phone_input and phone_input != st.session_state.user_info.get('phone'):
-        st.session_state.user_info['phone'] = phone_input
+    # Button to generate new phone number if needed
+    if st.sidebar.button("🔄 Generate New Phone", help="Generate a new random phone number"):
+        import random
+        new_phone = f"+97155{random.randint(1000000, 9999999)}"
+        st.session_state.user_info['phone'] = new_phone
+        st.session_state.user_info['bitrix_lead_id'] = None  # Reset lead tracking
+        st.rerun()
     
     user_info = st.session_state.user_info
     st.sidebar.write(f"**Phone:** {user_info.get('phone', 'Not assigned')}")
     st.sidebar.write(f"**Name:** {user_info.get('name', 'Not collected')}")
     st.sidebar.write(f"**Messages:** {user_info.get('total_messages', 0)}")
     st.sidebar.write(f"**Last Seen:** {user_info.get('last_seen', 'Never')}")
+    st.sidebar.write(f"**Bitrix Lead:** {user_info.get('bitrix_lead_id', 'Not created')}")
     
     # Manual Bitrix save button - SIMPLIFIED
     if st.sidebar.button("💾 Save Simple Lead to Bitrix", help="Create a simple lead with name, phone, and park"):
@@ -292,6 +307,10 @@ def main():
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
+            
+            # 🚀 LEAD CREATION HANDLED BY RAG PIPELINE - No duplicate creation here
+            # The RAG pipeline will handle lead creation automatically with the auto-generated phone
+            # This prevents duplicate lead creation issues
             
             # Generate assistant response
             with st.chat_message("assistant"):

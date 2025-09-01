@@ -1580,6 +1580,10 @@ Respond with only "YES" or "NO":""",
             # Store phone in state for session consistency
             state["user_phone"] = user_phone
         
+        # Get stored question early for birthday detection consistency across all lead operations
+        stored_question = self.user_tracker.get_stored_question(user_phone) or ""
+        combined_content = f"{question} {stored_question}"
+        
         # Get or create user profile
         user_profile = self.user_tracker.get_user_profile(user_phone)
         
@@ -1592,7 +1596,7 @@ Respond with only "YES" or "NO":""",
             self.user_tracker.update_user_profile(user_phone, extracted_name)
             user_profile["name"] = extracted_name
         
-        # NEW: Handle first interaction immediately - ask for name
+        # NEW: Handle first interaction immediately - ask for name and mall preference
         is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
         is_name_response = self.user_tracker.is_name_response(question, chat_history)
         
@@ -1612,23 +1616,123 @@ Respond with only "YES" or "NO":""",
             detected_location = self._detect_location_simple(question)
             print(f"🔍 Auto-detected location from question: {detected_location}")
         
+        # Check if we should ask for mall preference early (after location detection)
+        # DISABLED - we now ask for name and mall together in first interaction
+        should_ask_mall_preference = False
+        
         # Check if we should request name or handle name response
         should_request_name = False
         name_request_message = ""
         personalized_intro = ""
         
         if is_first_interaction and not name_extraction.get("name_found"):
-            # First interaction without name - store question and ask for name politely
+            # First interaction without name - ask for name AND mall preference together
             should_request_name = True
-            name_request_message = self.user_tracker.generate_name_request("polite_request")
+            name_request_message = """Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨"""
             # Store the original question for later
             self.user_tracker.store_original_question(user_phone, question)
+            print(f"👋 First interaction - asking for name AND mall preference, storing question: '{question}'")
             
         elif name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
-            # Name was just provided - check if we need to answer stored question
+            # Name was just provided - check if we also have mall preference
             extracted_name = name_extraction.get("extracted_name")
             
-            # Always try to get stored question when name is provided
+            # Check if mall was also provided in this response OR already stored
+            stored_mall = user_profile.get("current_park_location")
+            
+            if detected_location == "General" and not stored_mall:
+                # Only name provided, no stored mall - ask for mall preference
+                should_request_name = True
+                name_request_message = f"""Thank you, {extracted_name}! 😊
+
+I still need to know which location you're interested in:
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Which location would you prefer? ✨"""
+                
+                # Update user profile with name but don't answer stored question yet
+                self.user_tracker.update_user_profile(user_phone, extracted_name)
+                print(f"👤 Name provided: {extracted_name}, but still need mall preference")
+                
+                # Return mall preference request
+                self.user_tracker.log_conversation(user_phone, extracted_name, name_request_message, is_user=False)
+                
+                return {
+                    "generation": name_request_message,
+                    "source_documents": [],
+                    "documents": [],
+                    "question": question,
+                    "chat_history": chat_history,
+                    "user_phone": user_phone,
+                    "user_name": extracted_name,
+                    "user_profile": user_profile,
+                    "name_extraction_result": name_extraction,
+                    "should_request_name": True,
+                    "name_request_message": name_request_message,
+                    "conversation_logged": True,
+                    "awaiting_mall_preference": True
+                }
+            elif detected_location == "General" and stored_mall:
+                # Name provided, and we have stored mall preference - use stored mall!
+                detected_location = stored_mall
+                print(f"👤 Name provided: {extracted_name}, using stored mall preference: {stored_mall}")
+                # Continue to stored question processing below
+        
+        # NEW: Handle case where user provides ONLY mall but no name
+        elif not name_extraction.get("name_found") and detected_location != "General" and not user_profile.get("name"):
+            # Mall provided but no name - ask for name
+            should_request_name = True
+            
+            location_names = {
+                "YAS_MALL": "Yas Mall",
+                "DALMA_MALL": "Dalma Mall", 
+                "FESTIVAL_CITY": "Festival City"
+            }
+            location_display = location_names.get(detected_location, detected_location)
+            
+            name_request_message = f"""Great choice! {location_display} is a wonderful location! 🌟
+
+Before I can help you further, may I please get your name? This will help me provide you with personalized assistance! 😊"""
+            
+            # Store the mall preference in user profile using park location tracking
+            self.user_tracker.update_user_lead_info(user_phone, None, "mall_preference", detected_location)
+            print(f"🏢 Mall provided: {location_display}, but still need name")
+            
+            # Return name request
+            self.user_tracker.log_conversation(user_phone, user_profile.get("name"), name_request_message, is_user=False)
+            
+            return {
+                "generation": name_request_message,
+                "source_documents": [],
+                "documents": [],
+                "question": question,
+                "chat_history": chat_history,
+                "user_phone": user_phone,
+                "user_name": "",
+                "user_profile": user_profile,
+                "name_extraction_result": name_extraction,
+                "should_request_name": True,
+                "name_request_message": name_request_message,
+                "conversation_logged": True,
+                "awaiting_name": True
+            }
+            
+            # Name and mall both provided - proceed with stored question
             stored_question = self.user_tracker.get_stored_question(user_phone)
             
             if stored_question:
@@ -1691,17 +1795,26 @@ Respond with only "YES" or "NO":""",
                     if lead_result:
                         # Update user profile with lead information including park location
                         self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                        # 🔧 CRITICAL FIX: Update the local user_profile with lead_id for immediate conversion
+                        user_profile['bitrix_lead_id'] = lead_result.get('lead_id')
                         state["lead_created"] = lead_result
                         print(f"✅ Lead created successfully: {lead_result.get('lead_id', 'Unknown ID')}")
                     else:
                         print("⚠️ Lead creation returned None - check Bitrix configuration")
                         
                 # Check if we should update an existing lead
-                elif self.lead_manager.should_update_lead(user_profile, detected_location):
-                    # Update existing lead
+                elif self.lead_manager.should_update_lead(user_profile, effective_birthday_location or detected_location, combined_content, user_profile.get('total_messages', 0), user_profile.get('current_stage')):
+                    # For all questions, use the effective location (including stored preferences)
+                    location_for_update = effective_birthday_location or detected_location
+                    if location_for_update != detected_location:
+                        print(f"🏢 Using stored mall preference for lead update: {location_for_update}")
+                    
+                    # Update existing lead with interaction count and stage info
                     lead_result = self.lead_manager.update_existing_lead(
                         user_info=user_profile,
-                        park_location=detected_location
+                        park_location=location_for_update,
+                        conversation_content=combined_content,
+                        interaction_count=user_profile.get('total_messages', 0)
                     )
                     
                     if lead_result:
@@ -1718,9 +1831,9 @@ Respond with only "YES" or "NO":""",
                 print(f"   Location: {detected_location}")
                 # Continue without failing the whole response
         
-        # If we should request name for first interaction, return name request
+        # If we should request name and mall for first interaction, return request
         if should_request_name and name_request_message and is_first_interaction:
-            # Return polite name request
+            # Return name and mall request (no lead creation yet)
             self.user_tracker.log_conversation(user_phone, user_profile.get("name"), name_request_message, is_user=False)
             
             return {
@@ -1736,37 +1849,158 @@ Respond with only "YES" or "NO":""",
                 "name_extraction_result": name_extraction,
                 "should_request_name": True,
                 "name_request_message": name_request_message,
-                "conversation_logged": True
+                "conversation_logged": True,
+                "first_interaction_request": True  # Flag to indicate we're asking for name+mall
             }
         
         # Fast retrieval with fewer documents for speed
         documents = self.retriever.invoke(question)
+        print(f"🔍 RAG DEBUG - Initial retrieval: {len(documents)} documents for query: '{question}'")
         
         # Check if this is an infrastructure query and apply intelligent filtering
         is_infrastructure_query = self._is_infrastructure_query(question)
+        
+        # Use stored mall preference for document filtering if available
+        effective_location = detected_location
+        if detected_location == "General" and user_profile.get('current_park_location'):
+            effective_location = user_profile.get('current_park_location')
+            print(f"🏢 Using stored mall preference for document filtering: {effective_location}")
+        
+        # 🔧 FIX: Define birthday location logic early for later use
+        stored_mall = user_profile.get('current_park_location')
+        effective_birthday_location = detected_location
+        
+        # Use stored mall preference if current query doesn't specify location
+        if detected_location == "General" and stored_mall:
+            effective_birthday_location = stored_mall
+            print(f"🎂 Using stored mall preference for birthday: {stored_mall}")
+        
+        # 🔧 FIX: Better pricing query detection - check stored question too
+        stored_question = self.user_tracker.get_stored_question(user_phone) or ""
+        combined_query = f"{question} {stored_question}".lower()
+        
+        is_pricing_query = any(term in combined_query for term in [
+            'price', 'pricing', 'cost', 'sock', 'ticket', 'how much', 'price list', 
+            'rate', 'charge', 'fee', 'aed', 'money', 'payment'
+        ])
+        print(f"🔍 RAG DEBUG - is_pricing_query: {is_pricing_query} | is_infrastructure_query: {is_infrastructure_query}")
+        print(f"🔍 RAG DEBUG - effective_location: {effective_location}")
+        print(f"🔍 RAG DEBUG - combined_query: '{combined_query[:100]}...'")
         
         # Apply location and content-type filtering if relevant
         if is_infrastructure_query:
             content_type_priority = 'Infrastructure Information'
             documents = self._filter_documents_by_location_and_type(
-                documents, detected_location, content_type_priority
+                documents, effective_location, content_type_priority
             )
-            print(f"🏗️ Applied infrastructure filtering for {detected_location}")
+            print(f"🏗️ Applied infrastructure filtering for {effective_location}: {len(documents)} docs remaining")
+        elif is_pricing_query:
+            # For pricing queries: Force include general pricing documents + location-specific ones
+            print(f"💰 PRICING QUERY DETECTED - forcing general pricing docs + {effective_location} docs")
+            
+            # Get location-specific documents first
+            location_docs = self._filter_documents_by_location(documents, effective_location)
+            
+            # 🔧 FORCE RETRIEVE: Get general pricing documents using direct search
+            general_pricing_queries = [
+                "socks pricing AED kids adults 5 8", 
+                "Leo Loona merchandise pricing socks",
+                "pricing information tickets socks merchandise"
+            ]
+            
+            general_docs = []
+            for pricing_query in general_pricing_queries:
+                try:
+                    pricing_docs = self.retriever.invoke(pricing_query)
+                    # Look for docs that contain actual pricing (5 AED, 8 AED)
+                    for doc in pricing_docs[:3]:  # Check top 3 from each search
+                        if any(term in doc.page_content for term in ["5 AED", "8 AED", "Socks:", "**Socks"]):
+                            general_docs.append(doc)
+                            print(f"  ✅ Found pricing doc: {doc.metadata.get('source', 'Unknown')}")
+                            break  # Only need one good pricing doc per query
+                    if general_docs:  # Found pricing docs, stop searching
+                        break
+                except Exception as e:
+                    print(f"  ⚠️ Error in pricing search: {e}")
+            
+            # 🔧 FALLBACK: If no pricing docs found, search more broadly
+            if not general_docs:
+                print(f"  🔍 No pricing docs found, searching consolidated FAQ...")
+                try:
+                    faq_docs = self.retriever.invoke("consolidated FAQ pricing information")
+                    for doc in faq_docs[:5]:
+                        if "consolidated_faq" in doc.metadata.get('source', '').lower():
+                            general_docs.append(doc)
+                            print(f"  📄 Added FAQ doc: {doc.metadata.get('source', 'Unknown')}")
+                            if len(general_docs) >= 2:  # Get 2 FAQ docs
+                                break
+                except Exception as e:
+                    print(f"  ⚠️ Error in FAQ search: {e}")
+            
+            # Combine location docs + forced general docs
+            documents = location_docs[:2] + general_docs[:2]  # Max 2 from each type
+            
+            print(f"💰 PRICING DOCS: {len(location_docs[:2])} from {effective_location} + {len(general_docs[:2])} forced general = {len(documents)} total")
         else:
-            # Regular location filtering for non-infrastructure queries
-            documents = self._filter_documents_by_location(documents, detected_location)
+            original_count = len(documents)
+            documents = self._filter_documents_by_location(documents, effective_location)
+            print(f"📍 Location filtering: {original_count} → {len(documents)} docs for {effective_location}")
+        
+        print(f"🔍 RAG DEBUG - Final document count before taking top 3: {len(documents)}")
         
         # Take only top 3 most relevant documents for speed
         top_documents = documents[:3]
+        print(f"🔍 RAG DEBUG - Selected top {len(top_documents)} documents for LLM")
+        
+        # 🔍 ALWAYS LOG: What documents are actually retrieved for any pricing query
+        if is_pricing_query:
+            print(f"💰 PRICING DEBUG - Retrieved Documents:")
+            for i, doc in enumerate(top_documents):
+                location = doc.metadata.get('location', 'UNKNOWN')
+                source = doc.metadata.get('source', 'Unknown')
+                content_preview = doc.page_content[:300].replace('\n', ' ')
+                print(f"  Doc {i+1} [{location}|{source}]: {content_preview}...")
+                
+                # Check if document contains pricing information
+                if "AED" in doc.page_content:
+                    aed_lines = [line.strip() for line in doc.page_content.split('\n') if 'AED' in line]
+                    for line in aed_lines[:3]:  # Show first 3 AED lines
+                        print(f"    💰 {line}")
+                
+                # Check specifically for socks
+                if "sock" in doc.page_content.lower():
+                    sock_lines = [line.strip() for line in doc.page_content.split('\n') if 'sock' in line.lower()]
+                    for line in sock_lines:
+                        print(f"    🧦 {line}")
         
         # Quick format documents
         context = "\n\n".join(doc.page_content for doc in top_documents)
         
-        # Simple chat history formatting (last 3 messages only)
-        chat_context = ""
+        # 🔍 ALWAYS LOG: Context being sent to LLM for pricing queries
+        if is_pricing_query:
+            print(f"🤖 PRICING DEBUG - Context being sent to LLM:")
+            print(f"  Context length: {len(context)} characters")
+            print(f"  Context preview: {context[:500]}...")
+            
+            if "sock" in question.lower():
+                if "5 AED" in context and "8 AED" in context:
+                    print(f"  ✅ Context contains CORRECT sock pricing (5 AED, 8 AED)!")
+                else:
+                    print(f"  ❌ Context does NOT contain correct sock pricing!")
+                    # Show all AED mentions in context
+                    aed_mentions = [line.strip() for line in context.split('\n') if 'AED' in line]
+                    print(f"  💰 AED mentions in context: {aed_mentions[:5]}")  # First 5
+        
+        # Enhanced chat history formatting (last 4 messages for better context)
+        chat_context = "No previous conversation."
         if chat_history:
-            recent_messages = chat_history[-3:]
-            chat_context = "\n".join([f"{msg.get('role', 'user')}: {msg.get('content', '')}" for msg in recent_messages])
+            recent_messages = chat_history[-4:]  # Include more context
+            formatted_messages = []
+            for msg in recent_messages:
+                role = "You" if msg.get('role') == 'assistant' else "Guest"
+                content = msg.get('content', '')
+                formatted_messages.append(f"{role}: {content}")
+            chat_context = "\n".join(formatted_messages)
         
         # Check if question is about Leo & Loona and detect location
         location_needed = self._check_location_clarification_needed(question, context, detected_location)
@@ -1838,14 +2072,82 @@ Which one would you like to know about? ✨"""
                 "name_extraction_result": name_extraction,
                 "should_request_name": False,  # Don't ask for name during location clarification
                 "name_request_message": "",
-                "conversation_logged": True
+                "conversation_logged": True,
+                "mall_clarification_needed": needs_mall_clarification if 'needs_mall_clarification' in locals() else False
             }
 
-        # Get current date/time context for accurate responses
+        # Check for birthday questions that need mall clarification
+        # Use the combined_content defined early in function for consistency
+        is_birthday_question = self.lead_manager._detect_birthday_content(combined_content) if self.lead_manager else False
+        
+        if is_birthday_question:
+            print(f"🎂 Birthday question detected in: '{combined_content[:100]}...'")
+        
+        # Use the already defined effective_birthday_location from above
+        needs_mall_clarification = (
+            is_birthday_question and 
+            effective_birthday_location == "General" and  # Only if we still don't know the mall
+            user_profile.get('bitrix_lead_id')  # Only for existing leads
+        )
+        
+        print(f"🎂 Birthday check: is_birthday={is_birthday_question}, effective_location={effective_birthday_location}, needs_clarification={needs_mall_clarification}")
+        
+        # 🔧 CRITICAL FIX: If birthday detected and we have a lead, immediately update it
+        print(f"🔍 CONVERSION CHECK - is_birthday: {is_birthday_question}, lead_id: {user_profile.get('bitrix_lead_id')}, location: {effective_birthday_location}")
+        print(f"🔍 USER PROFILE DEBUG - Full profile: {user_profile}")
+        
+        if is_birthday_question and user_profile.get('bitrix_lead_id') and effective_birthday_location != "General":
+            print(f"🎂 Converting existing lead to birthday lead - updating title and assignment")
+            
+            lead_result = self.lead_manager.update_existing_lead(
+                user_info=user_profile,
+                park_location=effective_birthday_location,
+                conversation_content=combined_content,
+                interaction_count=user_profile.get('total_messages', 0)
+            )
+            
+            if lead_result:
+                print(f"✅ Successfully converted lead to birthday lead: {lead_result.get('lead_id', 'Unknown ID')}")
+            else:
+                print("⚠️ Failed to convert lead to birthday lead")
+        
+        # Get current date/time context for accurate responses (always needed)
         datetime_context = self._format_datetime_context()
         
-        # Fast prompt with Leo & Loona personality and date/time awareness
-        fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance.
+        # Initialize answer variable to avoid UnboundLocalError
+        answer = ""
+        
+        if needs_mall_clarification:
+            # Generate mall clarification response for birthday questions
+            print(f"🎂 Birthday question detected but no mall specified - asking for clarification")
+            answer = """Great! We have amazing birthday parties at Leo & Loona! 🎉 
+
+Which location would you like to know about?
+
+🏢 **Our Locations:**
+1️⃣ **Yas Mall** - Yas Island, Abu Dhabi
+2️⃣ **Dalma Mall** - Mussafah, Abu Dhabi  
+3️⃣ **Festival City** - Dubai Festival City, Dubai
+
+Please let me know which location interests you, and I'll connect you with the right team for birthday party planning! 🎂"""
+            
+        elif should_ask_mall_preference:
+            # Early mall preference collection
+            print(f"🏢 Asking for mall preference early in conversation for {user_profile.get('name')}")
+            answer = f"""Thanks for your question, {user_profile.get('name')}! 😊
+
+To give you the most helpful information, which of our magical Leo & Loona locations are you interested in?
+
+🏢 **Choose Your Location:**
+• **Yas Mall** (Abu Dhabi - Yas Island)
+• **Dalma Mall** (Abu Dhabi - Mussafah)  
+• **Festival City** (Dubai)
+
+Or if you'd like general information about all locations, just let me know! ✨"""
+            
+        else:
+            # Fast prompt with Leo & Loona personality and date/time awareness
+            fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance.
 
 {datetime_context}
 
@@ -1872,18 +2174,35 @@ IMPORTANT: Use the current date/time information above INTERNALLY to provide acc
 Context from Leo & Loona FAQ:
 {context}
 
-Recent conversation:
+=== CONVERSATION HISTORY ===
 {chat_context}
+=== END CONVERSATION HISTORY ===
 
-Question: {question}
+CURRENT QUESTION: {question}
+
+IMPORTANT: If the guest is asking "can you tell me the pricing of it" or similar, refer to what "it" means from the conversation history above. Continue the conversation naturally by understanding the context.
 
 Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
+            
+            # Generate answer using the fast prompt
+            response = self.llm.invoke([HumanMessage(content=fast_prompt)])
+            answer = response.content
+            
+            # 🔍 ALWAYS LOG: LLM response for pricing queries
+            if is_pricing_query:
+                print(f"🤖 PRICING DEBUG - LLM Response:")
+                print(f"  Response length: {len(answer)} characters")
+                print(f"  Response: {answer}")
+                
+                if "sock" in question.lower():
+                    if "5 AED" in answer and "8 AED" in answer:
+                        print(f"  ✅ LLM generated CORRECT sock pricing!")
+                    elif any(wrong in answer for wrong in ["20-40", "50-100", "25-40", "30-45", "65-80", "60-80"]):
+                        print(f"  ❌ LLM generated WRONG/HALLUCINATED pricing!")
+                    else:
+                        print(f"  ⚠️ LLM response unclear - check manually")
         
-        # Generate response quickly
-        response = self.llm.invoke([HumanMessage(content=fast_prompt)])
-        answer = response.content
-        
-        # Add name request to answer if needed
+        # Add name and mall request to answer if needed
         if should_request_name and name_request_message:
             answer += f"\n\n{name_request_message}"
         
@@ -1941,16 +2260,25 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
                     if lead_result:
                         # Update user profile with lead information including park location
                         self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                        # 🔧 CRITICAL FIX: Update the local user_profile with lead_id for immediate conversion
+                        user_profile['bitrix_lead_id'] = lead_result.get('lead_id')
                         print(f"✅ Lead created for stored question: {lead_result.get('lead_id', 'Unknown ID')}")
                     else:
                         print("⚠️ Lead creation returned None for stored question")
                         
                 # Check if we should update an existing lead  
-                elif self.lead_manager.should_update_lead(user_profile, detected_location):
-                    # Update existing lead with location from stored question
+                elif self.lead_manager.should_update_lead(user_profile, effective_birthday_location or detected_location, combined_content, user_profile.get('total_messages', 0), user_profile.get('current_stage')):
+                    # For all questions, use the effective location (including stored preferences)
+                    location_for_update = effective_birthday_location or detected_location
+                    if location_for_update != detected_location:
+                        print(f"🏢 Using stored mall preference for stored question update: {location_for_update}")
+                    
+                    # Update existing lead with location from stored question and interaction count
                     lead_result = self.lead_manager.update_existing_lead(
                         user_info=user_profile,
-                        park_location=detected_location
+                        park_location=location_for_update,
+                        conversation_content=combined_content,
+                        interaction_count=user_profile.get('total_messages', 0)
                     )
                     
                     if lead_result:

@@ -32,6 +32,11 @@ class LeadManager:
             'team_name': 'General Inquiries',
             'user_ids': [1],  # Default admin user
             'user_names': ['Admin']
+        },
+        'Chatbot': {
+            'team_name': 'AI Chatbot Assistant',
+            'user_ids': [38005],  # Chatbot user - Finance.dfcm@leoloona.ae
+            'user_names': ['AI Chatbot Assistant']
         }
     }
 
@@ -69,7 +74,9 @@ class LeadManager:
             'yas mall': 'Yas Mall',
             'yas': 'Yas Mall',
             'General': 'General',
-            'general': 'General'
+            'general': 'General',
+            'Chatbot': 'Chatbot',
+            'chatbot': 'Chatbot'
         }
         
         # Get normalized location
@@ -105,43 +112,70 @@ class LeadManager:
         }
 
     def create_simple_lead(
-        self, name: str, phone: str, park_location: str = "General"
+        self, name: str, phone: str, park_location: str = "General", conversation_content: str = ""
     ) -> Optional[Dict]:
-        """Create a simple lead in Bitrix with just name, phone, and park location"""
+        """Create a simple lead in Bitrix with content-based routing (birthday vs general)"""
 
         if not self.client:
             print("Bitrix client not available - lead not created")
             return None
 
         try:
-            # Get assigned user for this mall location
-            assignment_info = self.get_assigned_user_for_mall(park_location)
+            # Analyze conversation content for birthday detection
+            is_birthday_query = self._detect_birthday_content(conversation_content)
+            
+            if is_birthday_query:
+                # Birthday queries: Assign to mall-specific teams, go to NEW APPROACH
+                print(f"🎂 Birthday party query detected - routing to NEW APPROACH stage")
+                assignment_info = self.get_assigned_user_for_mall(park_location)
+                status_id = 'UC_NJ6R1M'  # NEW APPROACH for birthday parties
+                title_prefix = "🎂 BIRTHDAY PARTY"
+            else:
+                # General queries: Assign to chatbot, stay in Inquiry
+                print(f"💬 General query detected - routing to Inquiry stage for chatbot")
+                assignment_info = self.get_assigned_user_for_mall('Chatbot')
+                status_id = 'NEW'  # Inquiry stage for general questions
+                title_prefix = "🤖 CHATBOT"
+            
             assigned_user_id = assignment_info['user_id']
             assigned_user_name = assignment_info['user_name']
             team_name = assignment_info['team_name']
             
-            # Working lead data with verified field values and dynamic assignment
+            # Create lead data based on content type (birthday vs general)
             lead_data = {
-                'TITLE': f"{park_location} - {name}",
-                'NAME': name,
-                'LAST_NAME': 'Customer',
-                'STATUS_ID': 'UC_0MD91B',  # Correct GENERAL QUESTIONS status ID
-                'SOURCE_ID': '1|OLCHAT_WA_CONNECTOR_2',  # Match working leads
+                'TITLE': f"New Lead - {name}",  # FIXED: Clean professional title
+                'NAME': name,  # FIXED: Clean name without brackets
+                'LAST_NAME': '',  # Empty like successful leads
+                'STATUS_ID': status_id,  # NEW (Inquiry) for general, UC_NJ6R1M (NEW APPROACH) for birthday
+                'SOURCE_ID': '1|OLCHAT_WA_CONNECTOR_2',
                 'PHONE': [{'VALUE': phone, 'VALUE_TYPE': 'WORK'}] if phone else [],
-                'COMMENTS': f"AI Chatbot Lead - {park_location} inquiry for {name}\nAssigned to: {assigned_user_name} ({team_name})",
-                'ASSIGNED_BY_ID': assigned_user_id,  # Dynamic assignment based on mall
+                'COMMENTS': f"{title_prefix} LEAD - {'BIRTHDAY PARTY' if is_birthday_query else 'GENERAL INQUIRY'}\n"
+                           f"📍 Park Interest: {park_location}\n"
+                           f"👤 Customer: {name}\n"
+                           f"📞 Phone: {phone}\n"
+                           f"🕒 Created: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                           f"🎯 Assigned to: {assigned_user_name} ({team_name})\n"
+                           f"{'🎂 Birthday party inquiry - ready for sales team' if is_birthday_query else '🤖 General inquiry - ready for chatbot processing'}\n"
+                           f"💬 Content: {conversation_content[:100]}..." if conversation_content else "",
+                'ASSIGNED_BY_ID': assigned_user_id,  # Dynamic assignment based on content
                 'OPENED': 'Y',
-                'IS_MANUAL_OPPORTUNITY': 'Y',
-                'OPPORTUNITY': 1.00
+                'IS_MANUAL_OPPORTUNITY': 'N',  # Keep same as successful leads
+                'OPPORTUNITY': 0.00  # Keep same as successful leads
             }
 
-            # Add working park field values
-            park_fields = self._get_park_field_values(park_location)
-            if park_fields:
-                lead_data.update(park_fields)
-                # Add dynamic date field
-                current_date = datetime.now().strftime('%Y-%m-%dT03:00:00+03:00')
-                lead_data['UF_CRM_1711693248818'] = [current_date]
+            # 🔧 CRITICAL FIX: ALWAYS add park fields when location is known (not just for birthdays)
+            if park_location and park_location != "General":
+                park_fields = self._get_park_field_values(park_location)
+                if park_fields:
+                    lead_data.update(park_fields)
+                    print(f"🏢 Added park fields to lead creation: {park_location} → {len(park_fields)} fields")
+                    
+                    # Add dynamic date field for birthday queries
+                    if is_birthday_query:
+                        current_date = datetime.now().strftime('%Y-%m-%dT03:00:00+03:00')
+                        lead_data['UF_CRM_1711693248818'] = [current_date]
+                else:
+                    print(f"⚠️ No park fields found for location: {park_location}")
 
             # Debug: Print the lead data being sent
             print(f"🔧 Creating SIMPLE lead with data: {lead_data}")
@@ -151,9 +185,12 @@ class LeadManager:
 
             if response and 'result' in response:
                 lead_id = response['result']
+                stage_name = "NEW APPROACH (Birthday Party)" if is_birthday_query else "Inquiry (General Question)"
                 print(
                     f"✅ Lead created in Bitrix: ID {lead_id}"
                     f"\n   Customer: {name} ({phone})"
+                    f"\n   Type: {'🎂 Birthday Party' if is_birthday_query else '💬 General Question'}"
+                    f"\n   Stage: {stage_name}"
                     f"\n   Location: {park_location}"
                     f"\n   Assigned to: {assigned_user_name} ({team_name})"
                 )
@@ -175,6 +212,107 @@ class LeadManager:
         except ValueError as e:
             print(f"Error creating simple lead in Bitrix: {e}")
             return None
+
+    def _detect_birthday_content(self, content: str) -> bool:
+        """Detect if conversation content is about birthday parties using intelligent LLM detection"""
+        
+        if not content:
+            return False
+        
+        content_lower = content.lower()
+        
+        # Quick keyword check first (for obvious cases to save API calls)
+        obvious_keywords = ['birthday', 'birthdays', 'bday', 'party', 'parties', 'celebration',
+                           'biortdays', 'bithday', 'birhtday', 'birtday']  # Common typos
+        
+        for keyword in obvious_keywords:
+            if keyword in content_lower:
+                print(f"🎂 Quick birthday detection: '{keyword}' found")
+                return True
+        
+        # For ambiguous cases, use LLM for intelligent detection
+        try:
+            from openai import OpenAI
+            import os
+            
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            
+            # Use a fast, cheap model for classification
+            response = client.chat.completions.create(
+                model="gpt-5-nano-2025-08-07",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are a classifier that detects if a message is asking about birthday parties, celebrations, or party-related services.
+                        
+                        IMPORTANT: Pay special attention to TYPOS and variations of birthday-related words.
+                        
+                        Respond with ONLY 'YES' or 'NO'.
+                        
+                        Examples that should be YES:
+                        - "Do you do birthdays?"
+                        - "do you do biortdays?" (typo for birthdays)
+                        - "hey do you do biortdays?" (typo for birthdays)  
+                        - "Can we celebrate there?"
+                        - "My son is turning 5"
+                        - "Looking for a party venue"
+                        - "Do you have party packages?"
+                        - "Can you host events?"
+                        - "Planning something special for my daughter"
+                        - "Need a place for celebration"
+                        - "do u do birthdays"
+                        - "can i book for a party"
+                        - "bithday party" (typo)
+                        - "birhtday" (typo)
+                        - "patrues" (typo for parties)
+                        
+                        Examples that should be NO:
+                        - "What are your opening hours?"
+                        - "How much are tickets?"
+                        - "Where are you located?"
+                        - "Do you have parking?"
+                        - "What activities do you have?"
+                        - "How much for socks?"
+                        """
+                    },
+                    {
+                        "role": "user",
+                        "content": f"Is this message asking about birthdays/parties/celebrations? Message: '{content}'"
+                    }
+                ],
+                temperature=0,
+                max_completion_tokens=10
+            )
+            
+            result = response.choices[0].message.content.strip().upper()
+            is_birthday = result == "YES"
+            
+            if is_birthday:
+                print(f"🎂 LLM birthday detection: YES for '{content[:100]}...'")
+            else:
+                print(f"📝 LLM birthday detection: NO for '{content[:100]}...'")
+                
+            return is_birthday
+            
+        except Exception as e:
+            print(f"⚠️ LLM detection failed, falling back to keyword matching: {e}")
+            
+            # Fallback to enhanced keyword detection if LLM fails
+            extended_keywords = [
+                'party', 'parties', 'celebration', 'celebrate', 'event',
+                'turning', 'years old', 'special day', 'venue', 'host',
+                'package', 'packages', 'booking', 'reserve',
+                # Common inquiry patterns
+                'do u do', 'do you do', 'can you do', 'can u do',
+                'do u have', 'do you have', 'offer birthday', 'host birthday'
+            ]
+            
+            for keyword in extended_keywords:
+                if keyword in content_lower:
+                    print(f"🎂 Fallback birthday keyword: '{keyword}' found")
+                    return True
+                    
+        return False
 
     def create_chatbot_lead(
         self,
@@ -258,8 +396,12 @@ class LeadManager:
         if park_fields:
             print(f"🏢 Park field mapping for '{park_location}' → '{normalized_location}': Found {len(park_fields)} fields")
             print(f"   Key field UF_CRM_1704787907109 = '{park_fields.get('UF_CRM_1704787907109', 'NOT SET')}'")
+            # Show all park fields being set
+            for field_name, field_value in park_fields.items():
+                print(f"   🔧 {field_name} = {field_value}")
         else:
             print(f"⚠️ No park fields found for '{park_location}' → '{normalized_location}'")
+            print(f"   Available locations in mapping: {list(park_field_mappings.keys())}")
         
         return park_fields
     def _generate_lead_title(
@@ -387,8 +529,8 @@ class LeadManager:
 
         return should_create
 
-    def update_existing_lead(self, user_info: Dict, park_location: str = None) -> Optional[Dict]:
-        """Update an existing lead with new information"""
+    def update_existing_lead(self, user_info: Dict, park_location: str = None, conversation_content: str = "", interaction_count: int = 0) -> Optional[Dict]:
+        """Update an existing lead with new information - convert to birthday lead if needed or update location/stage"""
         
         if not self.client:
             print("Bitrix client not available - lead not updated")
@@ -403,25 +545,72 @@ class LeadManager:
             name = user_info.get('name', 'Web Visitor')
             phone = user_info.get('phone', '')
             
+            # Check if this is a birthday question
+            is_birthday_question = self._detect_birthday_content(conversation_content)
+            
+            print(f"🔍 UPDATE DEBUG - Birthday check result: {is_birthday_question}")
+            print(f"🔍 UPDATE DEBUG - Content being checked: '{conversation_content[:100]}...'")
+            print(f"🔍 UPDATE DEBUG - Park location: {park_location}")
+            
             # Prepare update data
             update_data = {}
             
-            # Update name if it changed
-            if name and name != 'Web Visitor':
-                update_data['NAME'] = name
-                update_data['TITLE'] = f"{park_location} - {name}" if park_location else f"General - {name}"
-            
-            # Update park location if provided and different
-            if park_location:
-                park_fields = self._get_park_field_values(park_location)
-                if park_fields:
-                    update_data.update(park_fields)
+            if is_birthday_question:
+                # Birthday question → Stay in Inquiry but assign to sales team
+                print(f"🎂 Birthday question detected - staying in Inquiry but assigning to sales team for {park_location}")
+                
+                # Keep in Inquiry stage (STATUS_ID = 'NEW') but assign to sales team
+                update_data['TITLE'] = f"Birthday - {name}"
+                update_data['NAME'] = name  # FIXED: Clean name without brackets
+                
+                # Get mall-specific assignment for birthday
+                if park_location and park_location != "General":
+                    assignment_info = self.get_assigned_user_for_mall(park_location)
+                    if assignment_info:
+                        update_data['ASSIGNED_BY_ID'] = assignment_info['user_id']
+                        update_data['COMMENTS'] = f"🎂 BIRTHDAY PARTY INQUIRY\n" \
+                                               f"📍 Location: {park_location}\n" \
+                                               f"👤 Customer: {name}\n" \
+                                               f"📞 Phone: {phone}\n" \
+                                               f"🔄 Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
+                                               f"🎯 Assigned to: {assignment_info['user_name']} ({assignment_info['team_name']})\n" \
+                                               f"📋 Status: Inquiry (Birthday)\n" \
+                                               f"🎂 Birthday inquiry - ready for sales team\n" \
+                                               f"💬 Question: {conversation_content[:100]}..."
                     
-                # Update assignment if park changed
-                assignment_info = self.get_assigned_user_for_mall(park_location)
-                if assignment_info:
-                    update_data['ASSIGNED_BY_ID'] = assignment_info['user_id']
-                    update_data['COMMENTS'] = f"AI Chatbot Lead - {park_location} inquiry for {name}\nAssigned to: {assignment_info['user_name']} ({assignment_info['team_name']})\nUpdated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    # Add park fields for birthday leads
+                    park_fields = self._get_park_field_values(park_location)
+                    if park_fields:
+                        update_data.update(park_fields)
+                        
+                    print(f"🎂 Birthday lead: Inquiry → Inquiry + {assignment_info['user_name']}")
+                
+            else:
+                # General question → Move to General Questions stage
+                print(f"💬 General question detected - moving to General Questions stage")
+                
+                update_data['STATUS_ID'] = 'UC_0MD91B'  # General Questions
+                update_data['TITLE'] = f"General Inquiry - {name}"
+                update_data['NAME'] = name  # FIXED: Clean name without brackets
+                
+                # CRITICAL FIX: Always add park location fields when location is known
+                if park_location and park_location != "General":
+                    park_fields = self._get_park_field_values(park_location)
+                    if park_fields:
+                        update_data.update(park_fields)
+                        print(f"🏢 Added/updated park location fields: {park_location} → {len(park_fields)} fields")
+                    else:
+                        print(f"⚠️ No park fields found for location: {park_location}")
+                update_data['COMMENTS'] = f"💬 GENERAL QUESTIONS LEAD\n" \
+                                       f"👤 Customer: {name}\n" \
+                                       f"📞 Phone: {phone}\n" \
+                                       f"🔄 Moved: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
+                                       f"🎯 Assigned to: AI Chatbot Assistant (38005)\n" \
+                                       f"📋 Status: General Questions\n" \
+                                       f"💬 General inquiry - ready for review\n" \
+                                       f"📝 Content: {conversation_content[:100]}..."
+                
+                print(f"💬 Lead progression: Inquiry → General Questions")
             
             # Only update if we have something to update
             if not update_data:
@@ -434,14 +623,16 @@ class LeadManager:
             response = self.client.update_lead(lead_id, update_data)
             
             if response and response.get('result'):
-                print(f"✅ Lead {lead_id} updated successfully")
+                action_type = "converted to birthday lead" if is_birthday_question else "updated"
+                print(f"✅ Lead {lead_id} {action_type} successfully")
                 return {
                     'lead_id': lead_id,
-                    'action': 'updated',
+                    'action': 'birthday_conversion' if is_birthday_question else 'updated',
                     'name': name,
                     'phone': phone,
                     'park_location': park_location,
-                    'updated_fields': list(update_data.keys())
+                    'updated_fields': list(update_data.keys()),
+                    'is_birthday': is_birthday_question
                 }
             else:
                 print(f"❌ Failed to update lead {lead_id}: {response}")
@@ -451,42 +642,45 @@ class LeadManager:
             print(f"❌ Error updating lead {lead_id}: {str(e)}")
             return None
 
-    def should_update_lead(self, user_info: Dict, new_park_location: str = None) -> bool:
+    def should_update_lead(self, user_info: Dict, new_park_location: str = None, conversation_content: str = "", interaction_count: int = 0, current_stage: str = None) -> bool:
         """Determine if existing lead should be updated with new information"""
         
-        # Update if:
-        # 1. User has an existing lead
-        # 2. New park location is SPECIFICALLY mentioned and DIFFERENT from current
-        # 3. Do NOT update for "General" or same park location
+        # ENHANCED LOGIC with mall clarification:
+        # 1. Birthday question + mall known → Stay in Inquiry + assign to sales team
+        # 2. Birthday question + mall unknown → Ask for mall clarification (no update yet)
+        # 3. General question → Move to General Questions stage (if not already there)
         
         has_lead = user_info.get('bitrix_lead_id') is not None
         
         if not has_lead:
             return False
         
-        # Do NOT update if new location is "General" - this usually means
-        # the user asked a follow-up question without mentioning a mall
-        if new_park_location == "General":
-            print(f"🚫 Not updating lead: General location detected (likely follow-up question)")
-            return False
-            
-        # Get current park location from user profile
-        current_park = user_info.get('current_park_location')
-        original_park = user_info.get('original_park_location')
+        # Check if this is a birthday-related question
+        is_birthday_question = self._detect_birthday_content(conversation_content)
         
-        # Do NOT update if new location is same as current or original
-        if new_park_location == current_park or new_park_location == original_park:
-            print(f"🚫 Not updating lead: Same park location '{new_park_location}' (current: {current_park})")
-            return False
-            
-        # Only update if we have a specific mall location that's DIFFERENT
-        should_update = new_park_location is not None and new_park_location != "General"
-        
-        if should_update:
-            lead_id = user_info.get('bitrix_lead_id')
-            print(f"🔄 Should update lead {lead_id}: Different park location '{new_park_location}' (was: {current_park or original_park})")
-        
-        return should_update
+        if is_birthday_question:
+            # Birthday question → Check if we have mall information
+            if new_park_location and new_park_location != "General":
+                lead_id = user_info.get('bitrix_lead_id')
+                print(f"🎂 Should update lead {lead_id}: Birthday question for '{new_park_location}' - assigning to sales team (staying in Inquiry)")
+                return True
+            else:
+                # Birthday question but no mall specified → Will trigger clarification (no lead update)
+                lead_id = user_info.get('bitrix_lead_id')
+                print(f"🎂 Birthday question detected for lead {lead_id} - need mall clarification first (no update)")
+                return False
+        else:
+            # General question → Move to General Questions stage if not already there
+            if current_stage and current_stage == 'UC_0MD91B':
+                # Already in General Questions stage, no update needed
+                lead_id = user_info.get('bitrix_lead_id')
+                print(f"💬 Lead {lead_id} already in General Questions stage - no update needed")
+                return False
+            else:
+                # Move to General Questions stage
+                lead_id = user_info.get('bitrix_lead_id')
+                print(f"💬 Should update lead {lead_id}: General question - moving to General Questions stage")
+                return True
 
     def test_connection(self) -> bool:
         """Test Bitrix connection"""

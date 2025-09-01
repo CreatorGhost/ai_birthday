@@ -504,6 +504,14 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                     print(f"📝 Recorded lead update: User {phone} → Lead {lead_id} → New Park: {park_location}")
                 else:
                     print(f"📝 Recorded lead update: User {phone} → Lead {lead_id}")
+                    
+            elif action == "mall_preference":
+                # Store mall preference without lead_id
+                if park_location and park_location != "General":
+                    current_profile["current_park_location"] = park_location
+                    print(f"📝 Stored mall preference: User {phone} → {park_location}")
+                else:
+                    print(f"📝 Stored general mall preference: User {phone}")
             
             # Read existing profiles
             profiles = []
