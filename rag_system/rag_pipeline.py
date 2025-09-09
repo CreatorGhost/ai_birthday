@@ -129,7 +129,6 @@ class RAGPipeline:
                 self.llm_json_mode = ChatGoogleGenerativeAI(
                     google_api_key=os.getenv('GOOGLE_API_KEY'),
                     model=chat_config["model_name"],
-                    temperature=0,
                     max_output_tokens=chat_config.get("max_output_tokens")
                 )
             except ImportError:
@@ -510,10 +509,10 @@ class RAGPipeline:
                     embedding=self.embeddings
                 )
                 
-                # Setup fast retriever with fewer documents for speed
+                # Setup intelligent retriever with higher k for fallback strategy
                 self.retriever = self.vector_store.as_retriever(
                     search_type="similarity",
-                    search_kwargs={"k": 3}  # Reduced from 5 to 3 for speed
+                    search_kwargs={"k": 10}  # Increased for intelligent fallback
                 )
                 
                 print("✅ Loaded existing vector store")
@@ -653,6 +652,1032 @@ UAE DAY CLASSIFICATION:
 TIMEZONE NOTE: All times are in UAE Standard Time (UTC+4)
 """
         return context
+    
+    # 🧠 INTELLIGENT RETRIEVAL SYSTEM
+    
+    def _get_retrieval_config(self, query_type: str = "general", location: str = "General") -> dict:
+        """
+        Dynamic retrieval configuration based on query type and location
+        
+        Args:
+            query_type: Type of query (safety, pricing, hours, infrastructure, general)
+            location: Target location (YAS_MALL, DALMA_MALL, FESTIVAL_CITY, General)
+            
+        Returns:
+            Configuration dictionary for retrieval strategy
+        """
+        base_config = {
+            "primary_k": 10,              # Initial retrieval count from vector store
+            "target_chunks": 5,           # Final chunks to send to LLM (increased from 3)
+            "location_threshold": 2,      # Min location-specific docs needed before fallback
+            "relevance_threshold": 0.6,   # Min relevance score to consider document useful
+            "max_general_fallback": 3,    # Max general docs to include in fallback
+            "quality_check_enabled": True, # Whether to perform quality assessment
+        }
+        
+        # Adjust config based on query type
+        query_adjustments = {
+            "safety": {
+                "target_chunks": 4,        # Safety questions need comprehensive coverage
+                "location_threshold": 1,   # Even 1 good safety doc might be sufficient
+                "relevance_threshold": 0.7, # Higher threshold for safety accuracy
+            },
+            "pricing": {
+                "target_chunks": 4,        # Pricing needs both general and specific info
+                "location_threshold": 2,   # Need at least 2 pricing docs
+                "max_general_fallback": 2, # Limit general pricing docs
+            },
+            "hours": {
+                "target_chunks": 3,        # Hours are usually straightforward
+                "location_threshold": 1,   # One good hours doc is often enough
+                "relevance_threshold": 0.8, # High threshold for accuracy
+            },
+            "infrastructure": {
+                "target_chunks": 5,        # Infrastructure needs detailed info
+                "location_threshold": 3,   # Infrastructure is very location-specific
+                "max_general_fallback": 1, # Limit fallback for infrastructure
+            },
+            "birthday": {
+                "target_chunks": 4,        # Birthday parties need good coverage
+                "location_threshold": 2,   # Location matters for party planning
+                "relevance_threshold": 0.6, # Slightly lower threshold
+            }
+        }
+        
+        # Apply query-specific adjustments
+        if query_type in query_adjustments:
+            base_config.update(query_adjustments[query_type])
+        
+        # Location-specific adjustments
+        if location == "General":
+            base_config["location_threshold"] = 0  # No location preference
+            base_config["max_general_fallback"] = base_config["target_chunks"]
+        
+        print(f"🔧 Retrieval config for {query_type} @ {location}: {base_config}")
+        return base_config
+    
+    def _score_document_relevance(self, doc: Document, query: str, location: str, query_type: str) -> dict:
+        """
+        Score document relevance using multiple factors
+        
+        Args:
+            doc: Document to score
+            query: Original user query
+            location: Target location
+            query_type: Type of query (safety, pricing, etc.)
+            
+        Returns:
+            Dictionary with score and breakdown
+        """
+        scores = {}
+        
+        # 1. Content similarity (semantic relevance)
+        query_lower = query.lower()
+        content_lower = doc.page_content.lower()
+        
+        # Basic keyword matching for content similarity
+        query_words = set(query_lower.split())
+        content_words = set(content_lower.split())
+        common_words = query_words.intersection(content_words)
+        
+        # Calculate content similarity score
+        if len(query_words) > 0:
+            scores["content_similarity"] = len(common_words) / len(query_words)
+        else:
+            scores["content_similarity"] = 0.0
+        
+        # 2. Location match score
+        doc_location = doc.metadata.get("location", "").upper()
+        if location == "General" or doc_location == "GENERAL":
+            scores["location_match"] = 0.8  # General docs are good for any location
+        elif doc_location == location:
+            scores["location_match"] = 1.0  # Perfect location match
+        elif doc_location in ["YAS_MALL", "DALMA_MALL", "FESTIVAL_CITY"] and location != "General":
+            scores["location_match"] = 0.3  # Different specific location
+        else:
+            scores["location_match"] = 0.6  # Unknown or neutral location
+        
+        # 3. Content type match score
+        content_type = doc.metadata.get("content_type", "").lower()
+        source = doc.metadata.get("source", "").lower()
+        
+        content_type_scores = {
+            "safety": 1.0 if any(term in content_lower for term in ["safety", "mandatory", "rule", "required"]) else 0.5,
+            "pricing": 1.0 if any(term in content_lower for term in ["aed", "price", "cost", "ticket"]) else 0.5,
+            "hours": 1.0 if any(term in content_lower for term in ["hours", "open", "close", "time"]) else 0.5,
+            "infrastructure": 1.0 if "infrastructure" in content_type else 0.5,
+            "birthday": 1.0 if any(term in content_lower for term in ["birthday", "party", "celebration"]) else 0.5,
+            "general": 0.7  # General queries get neutral score
+        }
+        
+        scores["content_type_match"] = content_type_scores.get(query_type, 0.7)
+        
+        # 4. Source priority score
+        if "consolidated_faq" in source:
+            scores["source_priority"] = 0.9  # Consolidated FAQ is high priority
+        elif "general_faq" in source:
+            scores["source_priority"] = 0.8  # General FAQ is good
+        elif any(mall in source for mall in ["yas", "dalma", "festival"]):
+            scores["source_priority"] = 0.7  # Location-specific sources
+        else:
+            scores["source_priority"] = 0.6  # Other sources
+        
+        # Calculate weighted total score
+        weights = {
+            "content_similarity": 0.4,
+            "location_match": 0.3,
+            "content_type_match": 0.2,
+            "source_priority": 0.1
+        }
+        
+        total_score = sum(scores[factor] * weights[factor] for factor in weights)
+        
+        return {
+            "total_score": round(total_score, 3),
+            "breakdown": scores,
+            "weights": weights
+        }
+    
+    def _assess_document_quality(self, docs: List[Document], query: str, location: str, 
+                                query_type: str, config: dict) -> dict:
+        """
+        Assess if retrieved documents are sufficient for answering the query
+        
+        Args:
+            docs: List of documents to assess
+            query: Original user query
+            location: Target location
+            query_type: Type of query
+            config: Retrieval configuration
+            
+        Returns:
+            Dictionary with quality assessment results
+        """
+        if not docs:
+            return {
+                "sufficient": False,
+                "reason": "no_documents_found",
+                "location_specific_count": 0,
+                "general_count": 0,
+                "avg_relevance": 0.0,
+                "recommendations": ["expand_search", "try_general_fallback"]
+            }
+        
+        # Score all documents
+        scored_docs = []
+        location_specific_docs = []
+        general_docs = []
+        
+        for doc in docs:
+            score_result = self._score_document_relevance(doc, query, location, query_type)
+            doc_info = {
+                "document": doc,
+                "score": score_result["total_score"],
+                "breakdown": score_result["breakdown"]
+            }
+            scored_docs.append(doc_info)
+            
+            # Categorize by location
+            doc_location = doc.metadata.get("location", "").upper()
+            if doc_location == location:
+                location_specific_docs.append(doc_info)
+            elif doc_location in ["GENERAL", ""] or "general" in doc.metadata.get("source", "").lower():
+                general_docs.append(doc_info)
+        
+        # Calculate metrics
+        relevant_docs = [d for d in scored_docs if d["score"] >= config["relevance_threshold"]]
+        avg_relevance = sum(d["score"] for d in scored_docs) / len(scored_docs) if scored_docs else 0.0
+        
+        location_count = len(location_specific_docs)
+        general_count = len(general_docs)
+        
+        # Quality assessment criteria
+        has_min_location_docs = location_count >= config["location_threshold"]
+        has_good_relevance = avg_relevance >= config["relevance_threshold"]
+        has_min_total_docs = len(relevant_docs) >= 2
+        
+        # Determine if quality is sufficient
+        if location == "General":
+            # For general queries, just need good relevance and enough docs
+            sufficient = has_good_relevance and has_min_total_docs
+            reason = "general_query_satisfied" if sufficient else "insufficient_general_docs"
+        else:
+            # For location-specific queries, prefer location docs but allow fallback
+            sufficient = (has_min_location_docs and has_good_relevance) or \
+                        (has_good_relevance and has_min_total_docs and avg_relevance > 0.7)
+            
+            if not sufficient:
+                if location_count == 0:
+                    reason = "no_location_specific_docs"
+                elif not has_good_relevance:
+                    reason = "low_relevance_scores"
+                else:
+                    reason = "insufficient_document_count"
+            else:
+                reason = "quality_criteria_met"
+        
+        # Generate recommendations
+        recommendations = []
+        if not sufficient:
+            if location_count < config["location_threshold"] and location != "General":
+                recommendations.append("try_general_fallback")
+            if avg_relevance < config["relevance_threshold"]:
+                recommendations.append("expand_search_terms")
+            if len(relevant_docs) < config["target_chunks"]:
+                recommendations.append("increase_retrieval_count")
+        
+        result = {
+            "sufficient": sufficient,
+            "reason": reason,
+            "location_specific_count": location_count,
+            "general_count": general_count,
+            "total_relevant_docs": len(relevant_docs),
+            "avg_relevance": round(avg_relevance, 3),
+            "top_scores": [round(d["score"], 3) for d in sorted(scored_docs, key=lambda x: x["score"], reverse=True)[:5]],
+            "recommendations": recommendations,
+            "scored_documents": scored_docs
+        }
+        
+        print(f"📊 Quality Assessment: {result['reason']} | Location: {location_count}, General: {general_count}, Avg: {result['avg_relevance']}")
+        return result
+    
+    def _execute_intelligent_retrieval(self, query: str, location: str, query_type: str) -> List[Document]:
+        """
+        Execute intelligent retrieval with smart fallback strategy
+        
+        Args:
+            query: User's question
+            location: Target location (YAS_MALL, DALMA_MALL, FESTIVAL_CITY, General)
+            query_type: Type of query (safety, pricing, hours, etc.)
+            
+        Returns:
+            List of best documents for the query
+        """
+        print(f"🧠 Starting intelligent retrieval: {query_type} query for {location}")
+        
+        # Get retrieval configuration
+        config = self._get_retrieval_config(query_type, location)
+        
+        # Stage 1: Enhanced query preparation
+        enhanced_query = self._enhance_query_for_retrieval(query, location, query_type)
+        print(f"🔍 Enhanced query: '{query}' → '{enhanced_query}'")
+        
+        # Stage 2: Primary retrieval
+        print(f"📚 Stage 1: Primary retrieval (k={config['primary_k']})")
+        primary_docs = self.retriever.invoke(enhanced_query)
+        print(f"📚 Retrieved {len(primary_docs)} documents from primary search")
+        
+        # Stage 3: Quality assessment of primary results
+        quality_assessment = self._assess_document_quality(
+            primary_docs, query, location, query_type, config
+        )
+        
+        if quality_assessment["sufficient"]:
+            print(f"✅ Primary retrieval sufficient: {quality_assessment['reason']}")
+            best_docs = self._select_best_documents(
+                quality_assessment["scored_documents"], config["target_chunks"]
+            )
+            return best_docs
+        
+        print(f"❌ Primary retrieval insufficient: {quality_assessment['reason']}")
+        print(f"💡 Recommendations: {quality_assessment['recommendations']}")
+        
+        # Stage 4: Smart fallback strategy
+        if "try_general_fallback" in quality_assessment["recommendations"] and location != "General":
+            print(f"🔄 Stage 2: General fallback retrieval")
+            fallback_docs = self._execute_general_fallback(query, query_type, config)
+            
+            # Combine primary and fallback docs
+            combined_docs = primary_docs + fallback_docs
+            
+            # Re-assess combined quality
+            combined_assessment = self._assess_document_quality(
+                combined_docs, query, location, query_type, config
+            )
+            
+            print(f"🔄 Combined assessment: {combined_assessment['reason']}")
+            best_docs = self._select_best_documents(
+                combined_assessment["scored_documents"], config["target_chunks"]
+            )
+            return best_docs
+        
+        # Stage 5: Fallback - use best available documents
+        print(f"⚠️ Using best available documents from primary search")
+        best_docs = self._select_best_documents(
+            quality_assessment["scored_documents"], min(config["target_chunks"], len(primary_docs))
+        )
+        return best_docs
+    
+    def _enhance_query_for_retrieval(self, query: str, location: str, query_type: str) -> str:
+        """
+        Enhance query with location and type-specific terms for better retrieval
+        
+        Args:
+            query: Original query
+            location: Target location
+            query_type: Query type
+            
+        Returns:
+            Enhanced query string
+        """
+        enhanced_parts = [query]
+        
+        # Add location context if specific
+        if location != "General":
+            location_names = {
+                "YAS_MALL": "Yas Mall",
+                "DALMA_MALL": "Dalma Mall",
+                "FESTIVAL_CITY": "Festival City"
+            }
+            if location in location_names:
+                enhanced_parts.append(location_names[location])
+        
+        # Add query type context
+        type_enhancements = {
+            "safety": "safety rules requirements mandatory",
+            "pricing": "price cost fee AED ticket",
+            "hours": "opening hours time schedule",
+            "infrastructure": "infrastructure facilities equipment",
+            "birthday": "birthday party celebration event"
+        }
+        
+        if query_type in type_enhancements:
+            enhanced_parts.append(type_enhancements[query_type])
+        
+        return " ".join(enhanced_parts)
+    
+    def _execute_general_fallback(self, query: str, query_type: str, config: dict) -> List[Document]:
+        """
+        Execute general fallback search when location-specific search is insufficient
+        
+        Args:
+            query: Original query
+            query_type: Query type
+            config: Retrieval configuration
+            
+        Returns:
+            List of general documents
+        """
+        # Create general search queries
+        fallback_queries = []
+        
+        # Base general query
+        fallback_queries.append(f"{query} general FAQ")
+        
+        # 🚀 DYNAMIC: Generate type-specific queries using LLM (no hardcoding)
+        type_specific_queries = self._generate_dynamic_fallback_queries(query, query_type)
+        
+        if query_type in type_specific_queries:
+            fallback_queries.extend(type_specific_queries[query_type])
+        
+        # Execute fallback searches
+        fallback_docs = []
+        max_fallback = config.get("max_general_fallback", 3)
+        
+        for fallback_query in fallback_queries[:3]:  # Limit to 3 fallback queries
+            try:
+                docs = self.retriever.invoke(fallback_query)
+                fallback_docs.extend(docs[:2])  # Take top 2 from each search
+                if len(fallback_docs) >= max_fallback * 2:  # Get extra for filtering
+                    break
+            except Exception as e:
+                print(f"⚠️ Fallback search error: {e}")
+                continue
+        
+        print(f"🔄 Fallback retrieved {len(fallback_docs)} general documents")
+        return fallback_docs
+    
+    def _select_best_documents(self, scored_docs: List[dict], target_count: int) -> List[Document]:
+        """
+        Select the best documents from scored documents
+        
+        Args:
+            scored_docs: List of scored document dictionaries
+            target_count: Target number of documents to return
+            
+        Returns:
+            List of best documents
+        """
+        if not scored_docs:
+            return []
+        
+        # Sort by score (descending)
+        sorted_docs = sorted(scored_docs, key=lambda x: x["score"], reverse=True)
+        
+        # Take top documents up to target count
+        selected = sorted_docs[:target_count]
+        
+        # Extract just the documents
+        best_docs = [item["document"] for item in selected]
+        
+        # Log selection
+        print(f"🎯 Selected {len(best_docs)} best documents:")
+        for i, item in enumerate(selected):
+            doc = item["document"]
+            score = item["score"]
+            source = doc.metadata.get("source", "Unknown")
+            location = doc.metadata.get("location", "Unknown")
+            print(f"  #{i+1}: {source} ({location}) - Score: {score:.3f}")
+        
+        return best_docs
+    
+    # 🚀 NEW PARALLEL RETRIEVAL SYSTEM (No Classification Required)
+    
+    def _calculate_document_quality(self, doc: Document, query: str) -> float:
+        """
+        Calculate quality score for a document based on query relevance
+        
+        Args:
+            doc: Document to evaluate
+            query: User query
+            
+        Returns:
+            Quality score (0.0 to 1.0)
+        """
+        query_lower = query.lower()
+        content_lower = doc.page_content.lower()
+        
+        # Basic relevance scoring
+        query_words = set(query_lower.split())
+        content_words = set(content_lower.split())
+        
+        # Word overlap score
+        overlap = len(query_words.intersection(content_words))
+        overlap_score = overlap / max(len(query_words), 1) if query_words else 0
+        
+        # Content length bonus (longer docs often have more info)
+        length_score = min(len(doc.page_content) / 1000, 1.0) * 0.3
+        
+        # Source quality bonus
+        source = doc.metadata.get('source', '').lower()
+        source_bonus = 0.1 if 'faq' in source else 0.05
+        
+        return min(overlap_score + length_score + source_bonus, 1.0)
+    
+    def _ensure_document_diversity(self, docs: List[Document], max_docs: int = 5) -> List[Document]:
+        """
+        Ensure diversity in selected documents to avoid redundancy
+        
+        Args:
+            docs: List of ranked documents
+            max_docs: Maximum number of documents to return
+            
+        Returns:
+            Diverse set of documents
+        """
+        if len(docs) <= max_docs:
+            return docs
+        
+        selected = [docs[0]]  # Always include the best document
+        
+        for doc in docs[1:]:
+            if len(selected) >= max_docs:
+                break
+                
+            # Check diversity against already selected docs
+            is_diverse = True
+            doc_content_words = set(doc.page_content.lower().split())
+            
+            for selected_doc in selected:
+                selected_content_words = set(selected_doc.page_content.lower().split())
+                overlap = len(doc_content_words.intersection(selected_content_words))
+                similarity = overlap / max(len(doc_content_words), len(selected_content_words), 1)
+                
+                # If too similar to an already selected document, skip
+                if similarity > 0.7:  # 70% similarity threshold
+                    is_diverse = False
+                    break
+            
+            if is_diverse:
+                selected.append(doc)
+        
+        return selected
+    
+    def _parallel_retrieval_optimized(self, query: str, location: str) -> List[Document]:
+        """
+        Enhanced parallel retrieval - no classification, intelligent ranking
+        
+        Args:
+            query: User query
+            location: Target location (YAS_MALL, DALMA_MALL, etc.)
+            
+        Returns:
+            Optimized list of diverse, high-quality documents
+        """
+        print(f"🚀 PARALLEL RETRIEVAL: No classification - direct retrieval")
+        print(f"   📝 Query: '{query}'")
+        print(f"   📍 Location: {location}")
+        
+        all_docs = []
+        
+        # STAGE 1: Location-specific retrieval (if not General)
+        if location != "General":
+            try:
+                print(f"📍 Stage 1: Location-specific retrieval ({location} only)")
+                # Get documents using vector search
+                location_docs = self.retriever.invoke(f"{query} {location}")
+                
+                # 🔧 STRICT FILTERING: Only keep documents with exact location match
+                filtered_location_docs = []
+                for doc in location_docs:
+                    doc_location = doc.metadata.get('location', 'UNKNOWN').upper()
+                    if doc_location == location:
+                        filtered_location_docs.append(doc)
+                        print(f"   ✅ Kept {location} doc: {doc.metadata.get('source', 'Unknown')[:30]}...")
+                    else:
+                        print(f"   🚫 Filtered out {doc_location} doc: {doc.metadata.get('source', 'Unknown')[:30]}...")
+                
+                location_docs = filtered_location_docs
+                print(f"   📊 {location} documents found: {len(location_docs)}")
+                
+                # Quality filtering for location docs
+                quality_location_docs = []
+                for doc in location_docs[:8]:  # Consider top 8
+                    quality_score = self._calculate_document_quality(doc, query)
+                    if quality_score >= 0.4:  # Quality threshold for location docs
+                        quality_location_docs.append((doc, quality_score))
+                        print(f"   📄 Location doc: {doc.metadata.get('source', 'Unknown')[:30]}... (quality: {quality_score:.2f})")
+                
+                # Sort by quality and take top 3-4
+                quality_location_docs.sort(key=lambda x: x[1], reverse=True)
+                location_selected = [doc for doc, score in quality_location_docs[:4]]
+                all_docs.extend(location_selected)
+                
+                print(f"   ✅ Selected {len(location_selected)} location documents")
+                
+            except Exception as e:
+                print(f"   ❌ Location retrieval failed: {e}")
+        
+        # STAGE 2: General retrieval (ONLY from GENERAL location, no other malls)
+        try:
+            print(f"📚 Stage 2: General retrieval (GENERAL location only)")
+            # Get documents using vector search
+            general_docs = self.retriever.invoke(query)
+            
+            # 🔧 STRICT FILTERING: Only keep documents with location = "GENERAL"
+            filtered_general_docs = []
+            for doc in general_docs:
+                doc_location = doc.metadata.get('location', 'UNKNOWN').upper()
+                if doc_location == 'GENERAL':
+                    filtered_general_docs.append(doc)
+                    print(f"   ✅ Kept GENERAL doc: {doc.metadata.get('source', 'Unknown')[:30]}...")
+                else:
+                    print(f"   🚫 Filtered out {doc_location} doc: {doc.metadata.get('source', 'Unknown')[:30]}...")
+            
+            general_docs = filtered_general_docs
+            print(f"   📊 GENERAL documents found: {len(general_docs)}")
+            
+            # Quality filtering for general docs  
+            quality_general_docs = []
+            for doc in general_docs[:6]:  # Consider top 6
+                quality_score = self._calculate_document_quality(doc, query)
+                if quality_score >= 0.3:  # Slightly lower threshold for general docs
+                    quality_general_docs.append((doc, quality_score))
+                    print(f"   📄 General doc: {doc.metadata.get('source', 'Unknown')[:30]}... (quality: {quality_score:.2f})")
+            
+            # Sort by quality and take top 3 general docs (as requested)
+            quality_general_docs.sort(key=lambda x: x[1], reverse=True)
+            general_selected = [doc for doc, score in quality_general_docs[:3]]  # Take top 3 general docs
+            all_docs.extend(general_selected)
+            
+            print(f"   ✅ Selected {len(general_selected)} general documents")
+            
+        except Exception as e:
+            print(f"   ❌ General retrieval failed: {e}")
+        
+        # STAGE 3: Send ALL documents to LLM
+        print(f"🎯 Stage 3: Preparing ALL documents for LLM")
+        print(f"   📊 Total documents retrieved: {len(all_docs)}")
+        
+        if not all_docs:
+            print(f"   ❌ No documents retrieved - falling back to simple retrieval")
+            # Fallback to simple retrieval
+            try:
+                fallback_docs = self.retriever.invoke(query)
+                return fallback_docs[:5]
+            except:
+                return []
+        
+        # Calculate final quality scores for all documents
+        final_scored_docs = []
+        for doc in all_docs:
+            final_quality = self._calculate_document_quality(doc, query)
+            final_scored_docs.append((doc, final_quality))
+        
+        # Sort by final quality
+        final_scored_docs.sort(key=lambda x: x[1], reverse=True)
+        ranked_docs = [doc for doc, score in final_scored_docs]
+        
+        # Send ALL documents to LLM (no diversity filtering)
+        print(f"   📊 Final selection: ALL {len(ranked_docs)} documents (no filtering applied)")
+        print(f"   🎯 Letting LLM choose the best information from all available documents")
+        for i, doc in enumerate(ranked_docs):
+            source = doc.metadata.get('source', 'Unknown')
+            location_meta = doc.metadata.get('location', 'Unknown')
+            preview = doc.page_content[:80].replace('\n', ' ')
+            print(f"     #{i+1}: [{location_meta}|{source[:20]}...] {preview}...")
+        
+        return ranked_docs
+    
+    # 🚀 SMART STAGED RETRIEVAL SYSTEM (Zero-Hardcoding Enhancement)
+    
+    def _quick_confidence_check(self, question: str, documents: List[Document]) -> float:
+        """
+        Quick confidence assessment without full LLM evaluation
+        
+        Args:
+            question: Original user question
+            documents: Retrieved documents
+            
+        Returns:
+            Confidence score (0.0 to 1.0)
+        """
+        if not documents:
+            return 0.0
+        
+        # Quick keyword overlap check
+        question_words = set(question.lower().split())
+        total_overlap = 0
+        total_length = 0
+        
+        for doc in documents:
+            content_words = set(doc.page_content.lower().split())
+            overlap = len(question_words.intersection(content_words))
+            total_overlap += overlap
+            total_length += len(doc.page_content)
+        
+        # Normalize by document count and content length
+        if total_length > 0:
+            base_confidence = min(0.9, total_overlap / len(question_words) * 0.3 + 
+                                min(total_length / 1000, 1.0) * 0.4)
+        else:
+            base_confidence = 0.0
+        
+        # Boost confidence if we have multiple relevant documents
+        if len(documents) >= 3:
+            base_confidence += 0.1
+        
+        return min(1.0, base_confidence)
+    
+    def _retrieve_general_optimized(self, question: str) -> List[Document]:
+        """
+        Optimized general document retrieval for smart staged system
+        
+        Args:
+            question: User's question
+            
+        Returns:
+            List of general documents
+        """
+        print(f"🔍 Executing general retrieval for: '{question}'")
+        
+        # Use existing retriever but with general-focused enhancement
+        enhanced_query = f"{question} general FAQ safety rules requirements"
+        
+        try:
+            # Retrieve from general sources
+            general_docs = self.retriever.invoke(enhanced_query)
+            
+            # Filter to prioritize general documents
+            filtered_docs = []
+            for doc in general_docs:
+                source = doc.metadata.get('source', '').lower()
+                location = doc.metadata.get('location', '').upper()
+                
+                # Prioritize general sources
+                if any(term in source for term in ['general_faq', 'consolidated_faq']) or location == 'GENERAL':
+                    filtered_docs.append(doc)
+            
+            # If no general docs found, use top documents from search
+            if not filtered_docs:
+                filtered_docs = general_docs[:4]
+            
+            print(f"📚 General retrieval found {len(filtered_docs)} relevant documents")
+            return filtered_docs[:5]  # Return top 5
+            
+        except Exception as e:
+            print(f"❌ General retrieval failed: {e}")
+            return []
+    
+    def _smart_staged_retrieval(self, question: str, location: str, query_type: str) -> List[Document]:
+        """
+        Smart staged retrieval: Try location first, expand to general if needed
+        
+        Args:
+            question: User's question
+            location: Target location
+            query_type: Type of query (safety, pricing, etc.)
+            
+        Returns:
+            List of best documents from staged retrieval
+        """
+        print(f"🚀 Smart Staged Retrieval: {query_type} query for {location}")
+        
+        # STAGE 1: Current intelligent retrieval (location-focused)
+        print(f"📍 Stage 1: Location-focused retrieval ({location})")
+        try:
+            location_documents = self._execute_intelligent_retrieval(question, location, query_type)
+            location_confidence = self._quick_confidence_check(question, location_documents)
+            
+            print(f"📊 Location retrieval: {len(location_documents)} docs, confidence: {location_confidence:.2f}")
+            
+            # 📊 DETAILED LOCATION DOCUMENT ANALYSIS
+            print(f"📊 LOCATION DOCUMENTS BREAKDOWN:")
+            for i, doc in enumerate(location_documents):
+                preview = doc.page_content[:100].replace('\n', ' ')
+                location_meta = doc.metadata.get('location', 'UNKNOWN')
+                source = doc.metadata.get('source', 'Unknown')
+                sock_count = doc.page_content.lower().count('sock')
+                mandatory_count = doc.page_content.lower().count('mandatory')
+                print(f"   📄 Loc Doc {i+1}: [{location_meta}|{source}] socks={sock_count}, mandatory={mandatory_count}")
+                print(f"      📝 Preview: {preview}...")
+            
+            # If location confidence is high, use location results
+            confidence_threshold = 0.75  # Configurable threshold
+            if location_confidence >= confidence_threshold:
+                print(f"✅ Location confidence sufficient ({location_confidence:.2f} >= {confidence_threshold})")
+                return location_documents
+            
+            print(f"⚠️ Location confidence low ({location_confidence:.2f} < {confidence_threshold})")
+            
+        except Exception as e:
+            print(f"❌ Location retrieval failed: {e}")
+            location_documents = []
+            location_confidence = 0.0
+        
+        # STAGE 2: General retrieval for comparison
+        print(f"📚 Stage 2: General retrieval fallback")
+        try:
+            general_documents = self._retrieve_general_optimized(question)
+            general_confidence = self._quick_confidence_check(question, general_documents)
+            
+            print(f"📊 General retrieval: {len(general_documents)} docs, confidence: {general_confidence:.2f}")
+            
+            # 📊 DETAILED GENERAL DOCUMENT ANALYSIS
+            print(f"📊 GENERAL DOCUMENTS BREAKDOWN:")
+            for i, doc in enumerate(general_documents):
+                preview = doc.page_content[:100].replace('\n', ' ')
+                location_meta = doc.metadata.get('location', 'UNKNOWN')
+                source = doc.metadata.get('source', 'Unknown')
+                sock_count = doc.page_content.lower().count('sock')
+                mandatory_count = doc.page_content.lower().count('mandatory')
+                print(f"   📄 Gen Doc {i+1}: [{location_meta}|{source}] socks={sock_count}, mandatory={mandatory_count}")
+                print(f"      📝 Preview: {preview}...")
+                if sock_count > 0 or mandatory_count > 0:
+                    # Show lines containing relevant keywords
+                    relevant_lines = [line.strip() for line in doc.page_content.split('\n') 
+                                   if 'sock' in line.lower() or 'mandatory' in line.lower()]
+                    for line in relevant_lines[:2]:
+                        print(f"      🎯 RELEVANT: {line}")
+            
+            # STAGE 3: Choose better result
+            improvement_threshold = 0.15  # General must be significantly better
+            
+            if general_confidence > location_confidence + improvement_threshold:
+                print(f"✅ Using general docs (confidence: {general_confidence:.2f} vs {location_confidence:.2f})")
+                return general_documents
+            else:
+                print(f"✅ Using location docs (general not significantly better)")
+                return location_documents if location_documents else general_documents
+                
+        except Exception as e:
+            print(f"❌ General retrieval failed: {e}")
+            # Return location documents as fallback
+            return location_documents if location_documents else []
+    
+    def _generate_dynamic_fallback_queries(self, query: str, query_type: str) -> dict:
+        """
+        Generate dynamic fallback queries using LLM (replaces hardcoded queries)
+        
+        Args:
+            query: Original user query
+            query_type: Type of query (safety, pricing, etc.)
+            
+        Returns:
+            Dictionary with generated queries for the query type
+        """
+        try:
+            prompt = f"""Generate 2-3 search queries to find general information about this Leo & Loona question:
+
+Original Question: "{query}"
+Question Type: {query_type}
+
+Create variations that would find relevant information in general FAQ documents:
+1. A broad semantic search query
+2. A keyword-focused query
+3. A related concepts query
+
+Example for safety question "are socks mandatory?":
+- "safety requirements play area mandatory items"
+- "general rules visitors equipment needed"
+- "Leo Loona safety policies guidelines"
+
+Return only the search queries, one per line, no numbers or formatting."""
+
+            from langchain_core.messages import HumanMessage
+            response = self.llm_json_mode.invoke([HumanMessage(content=prompt)])
+            
+            # Parse response into list
+            queries = [q.strip() for q in response.content.strip().split('\n') if q.strip()]
+            
+            # Return in expected format
+            return {query_type: queries[:3]}  # Limit to 3 queries
+            
+        except Exception as e:
+            print(f"❌ Dynamic query generation failed: {e}")
+            # Minimal fallback - just use the original query with general context
+            return {query_type: [f"{query} general", f"{query} FAQ", f"{query} rules"]}
+    
+    def _classify_query_intent(self, query: str, location: str = "General") -> dict:
+        """
+        Use LLM to classify query intent without hardcoded keywords
+        
+        Args:
+            query: User's question
+            location: Target location context
+            
+        Returns:
+            Dictionary with classification results
+        """
+        classification_prompt = f"""Classify the intent of this user question about Leo & Loona amusement park.
+
+USER QUESTION: "{query}"
+LOCATION CONTEXT: {location}
+
+Analyze the question and determine:
+
+1. PRIMARY INTENT (choose ONE most relevant):
+   - safety: Questions about safety rules, requirements, mandatory items, age restrictions
+   - pricing: Questions about costs, prices, fees, money, tickets, packages
+   - hours: Questions about opening times, schedules, when open/closed
+   - infrastructure: Questions about facilities, equipment, layout, capacity, restaurant capacity
+   - birthday: Questions about birthday parties, celebrations, events, bookings
+   - activities: Questions about rides, attractions, what to do, games
+   - food: Questions about dining, restaurants, food options, menu
+   - location: Questions about directions, address, parking, how to get there
+   - contact: Questions about phone numbers, contact information, communication
+   - general: General questions about the park, policies, or unclear intent
+
+2. SECONDARY INTENTS (can be multiple or none):
+   - List any additional relevant categories from above
+
+3. CONFIDENCE (0.0 to 1.0):
+   - How confident are you in the primary intent classification?
+
+4. REQUIRES_LOCATION_INFO (true/false):
+   - Does this question need location-specific information to answer properly?
+
+5. KEY_ENTITIES:
+   - Extract important entities mentioned (items, activities, specific details)
+
+IMPORTANT EXAMPLES:
+- "are socks mandatory?" → PRIMARY: safety (not pricing, even though it mentions socks)
+- "how much are socks?" → PRIMARY: pricing  
+- "what are your opening hours?" → PRIMARY: hours
+- "can I book a birthday party?" → PRIMARY: birthday
+- "do you have parking?" → PRIMARY: location (infrastructure secondary)
+- "what activities do you have?" → PRIMARY: activities
+
+Respond with ONLY a JSON object:
+{{
+    "primary_intent": "safety",
+    "secondary_intents": ["equipment"],
+    "confidence": 0.95,
+    "requires_location_info": false,
+    "key_entities": ["socks", "mandatory"],
+    "reasoning": "User is asking about safety requirements, specifically if socks are mandatory to wear"
+}}"""
+
+        try:
+            from langchain_core.messages import HumanMessage
+            response = self.llm_json_mode.invoke([HumanMessage(content=classification_prompt)])
+            response_text = response.content.strip()
+            
+            import json
+            import re
+            
+            # Try to find JSON in response
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                    
+                    # Validate and clean response
+                    cleaned_result = {
+                        "primary_intent": result.get("primary_intent", "general"),
+                        "secondary_intents": result.get("secondary_intents", []),
+                        "confidence": max(0.0, min(1.0, result.get("confidence", 0.5))),
+                        "requires_location_info": result.get("requires_location_info", False),
+                        "key_entities": result.get("key_entities", []),
+                        "reasoning": result.get("reasoning", "LLM classification"),
+                        "method": "llm_classification"
+                    }
+                    
+                    # Validate primary intent
+                    valid_intents = ["safety", "pricing", "hours", "infrastructure", "birthday", 
+                                   "activities", "food", "location", "contact", "general"]
+                    if cleaned_result["primary_intent"] not in valid_intents:
+                        cleaned_result["primary_intent"] = "general"
+                    
+                    print(f"🎯 Query Classification: '{query}' → {cleaned_result['primary_intent']} (confidence: {cleaned_result['confidence']:.2f})")
+                    print(f"   Reasoning: {cleaned_result['reasoning'][:100]}...")
+                    
+                    return cleaned_result
+                    
+                except json.JSONDecodeError as e:
+                    print(f"⚠️ JSON decode error in classification: {e}")
+                    print(f"   Response: {response_text[:200]}...")
+            
+            else:
+                print(f"⚠️ No JSON found in classification response: {response_text[:200]}...")
+            
+        except Exception as e:
+            print(f"❌ LLM classification error: {str(e)}")
+        
+        # Fallback classification
+        print(f"🔄 Using fallback classification for: '{query}'")
+        return self._fallback_query_classification(query)
+    
+    def _fallback_query_classification(self, query: str) -> dict:
+        """
+        Fallback classification using simple keyword matching
+        
+        Args:
+            query: User's question
+            
+        Returns:
+            Basic classification result
+        """
+        query_lower = query.lower()
+        
+        # Safety indicators (prioritized to fix socks issue)
+        if any(term in query_lower for term in [
+            "mandatory", "required", "must", "rule", "allowed", "permitted", 
+            "safety", "wear", "bring", "need to", "have to", "suppose to"
+        ]):
+            return {
+                "primary_intent": "safety",
+                "secondary_intents": [],
+                "confidence": 0.7,
+                "requires_location_info": False,
+                "key_entities": [],
+                "reasoning": "Fallback: Contains safety/requirement keywords",
+                "method": "fallback_keywords"
+            }
+        
+        # Pricing indicators (only for clear pricing questions)
+        elif any(term in query_lower for term in [
+            "cost", "price", "expensive", "cheap", "how much", "fee", "charge", "aed"
+        ]):
+            return {
+                "primary_intent": "pricing",
+                "secondary_intents": [],
+                "confidence": 0.7,
+                "requires_location_info": True,
+                "key_entities": [],
+                "reasoning": "Fallback: Contains clear pricing keywords",
+                "method": "fallback_keywords"
+            }
+        
+        # Hours indicators  
+        elif any(term in query_lower for term in [
+            "hours", "open", "close", "time", "when", "schedule"
+        ]):
+            return {
+                "primary_intent": "hours",
+                "secondary_intents": [],
+                "confidence": 0.8,
+                "requires_location_info": True,
+                "key_entities": [],
+                "reasoning": "Fallback: Contains time/schedule keywords",
+                "method": "fallback_keywords"
+            }
+        
+        # Birthday indicators
+        elif any(term in query_lower for term in [
+            "birthday", "party", "celebration", "event", "book"
+        ]):
+            return {
+                "primary_intent": "birthday",
+                "secondary_intents": [],
+                "confidence": 0.8,
+                "requires_location_info": True,
+                "key_entities": [],
+                "reasoning": "Fallback: Contains birthday/party keywords",
+                "method": "fallback_keywords"
+            }
+        
+        # Default to general
+        else:
+            return {
+                "primary_intent": "general",
+                "secondary_intents": [],
+                "confidence": 0.5,
+                "requires_location_info": False,
+                "key_entities": [],
+                "reasoning": "Fallback: No specific intent detected",
+                "method": "fallback_default"
+            }
     
     def _is_location_followup(self, question: str, chat_history: List[dict]) -> bool:
         """Check if current question is just a location name following a clarification request"""
@@ -1266,8 +2291,19 @@ Please let us know which location you're interested in!"""
         documents = state["documents"]
         chat_history = state.get("chat_history", [])
         
-        # Simple location detection from question
-        location = self._detect_location_simple(question)
+        # Enhanced location detection with LLM (handles typos like "ys mall", "daaalma")
+        extraction_result = self._extract_user_info_with_llm(question, chat_history)
+        mall_name = extraction_result.get("mall_name", "General")
+        
+        # Convert to old format for compatibility
+        mall_mapping = {
+            "Yas Mall": "YAS_MALL",
+            "Dalma Mall": "DALMA_MALL", 
+            "Festival City": "FESTIVAL_CITY",
+            "General": "General"
+        }
+        location = mall_mapping.get(mall_name, "General")
+        print(f"🔍 LLM-detected location in simplified answer: {mall_name} → {location}")
         
         # Detect names for natural compliments
         detected_name = self._detect_names_in_conversation(question, chat_history)
@@ -1363,26 +2399,340 @@ Please let us know which location you're interested in!"""
             "loop_step": 1
         }
     
+    def _extract_user_info_with_llm(self, message: str, context: list = None) -> dict:
+        """Use LLM to extract user name and mall from message, handling typos and variations"""
+        
+        # Format context for prompt
+        context_str = ""
+        if context:
+            recent_messages = context[-3:] if len(context) > 3 else context
+            context_str = " | ".join([f"{msg.get('role', 'unknown')}: {msg.get('content', '')}" for msg in recent_messages])
+        
+        prompt = f"""Extract user name and mall location from this message. Handle typos and variations carefully.
+
+AVAILABLE MALLS (exact names to return):
+- "Yas Mall" (for: yas, y;s, yaas, yas mall, yas island, abu dhabi yas, etc.)
+- "Dalma Mall" (for: dalma, dallma, daaalma, dalama, dalma mall, abu dhabi dalma, etc.)  
+- "Festival City" (for: festival, festivel, festival city, dubai festival, dubai, etc.)
+- "General" (if no specific mall mentioned or unclear)
+
+EXTRACT NAME from patterns like:
+- "I'm John" / "I am Sarah" / "My name is Mike"
+- "Call me Lisa" / "It's David" / "Hi, I'm..."
+- Just a name in response to name questions
+- Names in combined messages like "I'm Ahmed, ys mall hours?"
+
+DETECT NAME REFUSAL from patterns like:
+- "no", "nope", "won't tell", "don't want to", "prefer not to"
+- "not telling", "skip", "decline", "no thanks", "i wont tell"
+- "no i won't", "rather not", "pass", "don't need to"
+
+MESSAGE: "{message}"
+RECENT CONTEXT: {context_str}
+
+Return ONLY valid JSON:
+{{
+    "name": "extracted name or null",
+    "mall_name": "Yas Mall" | "Dalma Mall" | "Festival City" | "General",
+    "name_refusal": true | false
+}}
+
+EXAMPLES:
+- "Hi I'm Ahmed, ys mall hours?" → {{"name": "Ahmed", "mall_name": "Yas Mall", "name_refusal": false}}
+- "daaalma mall pricing please" → {{"name": null, "mall_name": "Dalma Mall", "name_refusal": false}}
+- "My name is Sara festivel city" → {{"name": "Sara", "mall_name": "Festival City", "name_refusal": false}}
+- "no i wont tell" → {{"name": null, "mall_name": "General", "name_refusal": true}}
+- "prefer not to share yas mall" → {{"name": null, "mall_name": "Yas Mall", "name_refusal": true}}
+- "y;s mall info" → {{"name": null, "mall_name": "Yas Mall", "name_refusal": false}}
+- "I'm John, general question" → {{"name": "John", "mall_name": "General", "name_refusal": false}}"""
+
+        try:
+            from langchain_core.messages import HumanMessage
+            response = self.llm_json_mode.invoke([HumanMessage(content=prompt)])
+            response_text = response.content.strip()
+            
+            # Parse JSON response with better error handling
+            import json
+            import re
+            
+            # Try to find JSON in response
+            json_match = re.search(r'\{[^{}]*\}', response_text)
+            if json_match:
+                result = json.loads(json_match.group())
+                
+                # Validate and clean response
+                name = result.get("name")
+                mall_name = result.get("mall_name", "General")
+                
+                # Clean name (remove null strings, strip whitespace)
+                if name and isinstance(name, str):
+                    name = name.strip()
+                    if name.lower() in ['null', 'none', '']:
+                        name = None
+                else:
+                    name = None
+                
+                # Validate mall name
+                valid_malls = ["Yas Mall", "Dalma Mall", "Festival City", "General"]
+                if mall_name not in valid_malls:
+                    mall_name = "General"
+                
+                # Extract name_refusal field
+                name_refusal = result.get("name_refusal", False)
+                
+                return {
+                    "name": name,
+                    "mall_name": mall_name,
+                    "name_refusal": name_refusal,
+                    "confidence": 0.9,
+                    "method": "llm_extraction"
+                }
+            
+            else:
+                print(f"⚠️ LLM extraction: No JSON found in response: {response_text}")
+                # Return default values if extraction fails
+                return {
+                    "name": None,
+                    "mall_name": "General",
+                    "name_refusal": False,
+                    "confidence": 0.1,
+                    "method": "extraction_failed"
+                }
+                
+        except Exception as e:
+            print(f"❌ LLM extraction error: {str(e)}")
+            # Return default values if extraction fails
+            return {
+                "name": None,
+                "mall_name": "General",
+                "name_refusal": False, 
+                "confidence": 0.1,
+                "method": "extraction_error"
+        }
+    
     def _detect_location_simple(self, question: str) -> str:
-        """Simple location detection without LLM - returns metadata format - handles typos and variations"""
+        """Enhanced location detection using LLM (handles typos like 'ys mall', 'daaalma')"""
+        extraction_result = self._extract_user_info_with_llm(question)
+        mall_name = extraction_result.get("mall_name", "General")
+        
+        # Convert to location code format for system compatibility
+        mall_mapping = {
+            "Yas Mall": "YAS_MALL",
+            "Dalma Mall": "DALMA_MALL", 
+            "Festival City": "FESTIVAL_CITY",
+            "General": "General"
+        }
+        
+        return mall_mapping.get(mall_name, "General")
+    
+    def _validate_context_quality(self, question: str, context: str, documents: list) -> dict:
+        """🛡️ ANTI-HALLUCINATION: Validate if we have sufficient context to answer the question"""
+        
+        # Check 1: Empty or very short context
+        if not context or len(context.strip()) < 50:
+            return {
+                "sufficient": False,
+                "reason": "no_relevant_documents",
+                "confidence": 0.0
+            }
+        
+        # Check 2: No documents retrieved
+        if not documents:
+            return {
+                "sufficient": False,
+                "reason": "no_documents_found",
+                "confidence": 0.0
+            }
+        
+        # Check 3: Use LLM to assess context relevance
+        relevance_prompt = f"""Assess if the provided context contains sufficient information to answer the user's question.
+
+USER QUESTION: "{question}"
+
+CONTEXT PROVIDED:
+{context}
+
+ASSESSMENT CRITERIA:
+- Does the context contain specific information that directly answers the question?
+- Are there relevant facts, numbers, policies, or details in the context?
+- Can someone answer the question using ONLY the provided context?
+
+Respond with ONLY a JSON:
+{{
+    "sufficient": true/false,
+    "confidence": 0.0-1.0,
+    "reasoning": "brief explanation"
+}}
+
+Be STRICT - only return "sufficient": true if the context clearly contains the answer."""
+
+        try:
+            print(f"🔍 CONTEXT VALIDATION - Calling LLM for assessment:")
+            print(f"   📝 Question: '{question}'")
+            print(f"   📏 Context length: {len(context)} characters")
+            print(f"   🎯 Context contains keywords: {[word for word in ['sock', 'mandatory', 'require', 'safety'] if word in context.lower()]}")
+            
+            from langchain_core.messages import HumanMessage
+            response = self.llm_json_mode.invoke([HumanMessage(content=relevance_prompt)])
+            response_text = response.content.strip()
+            
+            print(f"   📥 LLM Validation Response: {response_text}")
+            
+            import json
+            import re
+            json_match = re.search(r'\{[^{}]*\}', response_text)
+            if json_match:
+                result = json.loads(json_match.group())
+                print(f"   ✅ Parsed validation result: sufficient={result.get('sufficient')}, confidence={result.get('confidence')}")
+                print(f"   📝 Reasoning: {result.get('reasoning', 'No reasoning provided')}")
+                return {
+                    "sufficient": result.get("sufficient", False),
+                    "reason": result.get("reasoning", "LLM assessment failed"),
+                    "confidence": result.get("confidence", 0.0)
+                }
+            else:
+                print(f"⚠️ Context validation: No JSON found in response: {response_text}")
+                return {"sufficient": False, "reason": "validation_error", "confidence": 0.0}
+                
+        except Exception as e:
+            print(f"❌ Context validation error: {str(e)}")
+            # Be conservative - if validation fails, assume insufficient context
+            return {"sufficient": False, "reason": f"validation_error: {str(e)}", "confidence": 0.0}
+    
+    def _generate_insufficient_info_response(self, question: str, reason: str) -> str:
+        """🛡️ Generate honest "I don't know" response when context is insufficient"""
+        
+        # Create personalized response based on question type
         question_lower = question.lower()
         
-        # Dalma Mall variations and common typos
-        dalma_keywords = ['dalma', 'dallma', 'dalama', 'dalma mall', 'dallma mall', 'abu dhabi dalma', 'abu dhabi dallma']
-        if any(keyword in question_lower for keyword in dalma_keywords):
-            return "DALMA_MALL"
-            
-        # Yas Mall variations and common typos  
-        yas_keywords = ['yas', 'yas mall', 'abu dhabi yas', 'yaas', 'yaas mall']
-        if any(keyword in question_lower for keyword in yas_keywords):
-            return "YAS_MALL"
-            
-        # Festival City Mall variations and common typos
-        festival_keywords = ['festival', 'festival city', 'dubai festival', 'festival mall', 'festiva', 'dubai', 'festivel']
-        if any(keyword in question_lower for keyword in festival_keywords):
-            return "FESTIVAL_CITY"
+        if any(term in question_lower for term in ['price', 'pricing', 'cost', 'how much']):
+            return """I'd love to help you with pricing information! However, I don't have the specific pricing details you're asking about in my current knowledge base. 
+
+For the most accurate and up-to-date pricing information, I'd recommend contacting our team directly. They'll be able to provide you with exact prices and any current promotions! 
+
+Is there anything else about Leo & Loona that I can help you with? 😊"""
+
+        elif any(term in question_lower for term in ['hours', 'open', 'close', 'time']):
+            return """I'd be happy to help with operating hours! However, I don't have the specific hours information you're looking for in my current knowledge base.
+
+For the most accurate opening hours and schedule information, please contact our team directly. Operating hours may vary by location and special events.
+
+Is there anything else about Leo & Loona that I can assist you with? ✨"""
+
+        elif any(term in question_lower for term in ['birthday', 'party', 'event', 'booking']):
+            return """I'd love to help you plan something special! However, I don't have the specific details you're asking about regarding events and bookings.
+
+For birthday parties and special events, I'd recommend speaking directly with our amazing team. They can provide detailed information about packages, availability, and help you plan the perfect celebration! 🎉
+
+Is there anything else about Leo & Loona that I can help you with?"""
+
         else:
-            return "General"
+            return f"""I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "{question}" accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊"""
+    
+    def _verify_answer_grounding(self, question: str, answer: str, context: str) -> dict:
+        """🛡️ ANTI-HALLUCINATION: Verify that the LLM answer is grounded in provided context"""
+        
+        # Quick checks first
+        if not answer or not context:
+            return {"grounded": False, "reason": "empty_answer_or_context", "confidence": 0.0}
+        
+        # Check if answer contains "I don't have" or similar admissions
+        admission_phrases = [
+            "i don't have", "i don't know", "not available", "don't currently have",
+            "recommend contacting", "speak directly with", "contact our team"
+        ]
+        
+        answer_lower = answer.lower()
+        if any(phrase in answer_lower for phrase in admission_phrases):
+            # Answer properly admits lack of knowledge - this is good
+            return {"grounded": True, "reason": "admits_lack_of_knowledge", "confidence": 0.9}
+        
+        # 🔧 CROSS-CONTEXT ALLOWANCE: Check for common helpful cross-context information
+        # When answering pricing questions, it's helpful to mention related policies
+        if ("price" in question.lower() or "cost" in question.lower()) and "sock" in question.lower():
+            if ("sock" in answer_lower and "required" in answer_lower) or ("sock" in answer_lower and "mandatory" in answer_lower):
+                print(f"   ℹ️ Allowing helpful cross-context: sock pricing + requirement mention")
+                # Check if the pricing information itself is in context
+                if any(price in context.lower() for price in ["5 aed", "8 aed", "aed"]):
+                    return {"grounded": True, "reason": "pricing_information_with_helpful_context", "confidence": 0.85}
+        
+        # Use LLM to verify if answer is grounded in context
+        # 🔧 CRITICAL FIX: Send full context for proper verification (was truncated to 1000 chars)
+        print(f"🛡️ ANSWER VERIFICATION DEBUG:")
+        print(f"   📝 Context length: {len(context)} characters") 
+        print(f"   🎯 Context contains keywords: {[word for word in ['sock', 'mandatory', 'require'] if word in context.lower()]}")
+        print(f"   📄 Answer to verify: {answer[:200]}...")
+        
+        verification_prompt = f"""QUESTION-FOCUSED VERIFICATION: Does this answer properly address the user's specific question?
+
+USER'S QUESTION: "{question}"
+
+ANSWER TO VERIFY:
+"{answer}"
+
+CONTEXT PROVIDED:
+{context}
+
+VERIFICATION APPROACH:
+🎯 **PRIMARY FOCUS**: Does the answer directly address what the user asked?
+📊 **FACTUAL ACCURACY**: Are the main claims supported by the context?
+💡 **HELPFUL CONTEXT**: Allow relevant helpful information that enhances the answer
+
+EVALUATION LOGIC:
+✅ MARK "grounded": TRUE when:
+- Answer directly addresses the user's specific question
+- Key factual claims (prices, times, policies) are found in the context
+- Additional helpful information doesn't contradict the context
+- Answer is useful and accurate for the question asked
+
+❌ MARK "grounded": FALSE only when:
+- Answer completely fails to address the user's question
+- Contains factually incorrect claims that contradict the context
+- Makes up specific facts (numbers, policies) not reasonably supported
+
+EXAMPLES FOR CLARITY:
+• Q: "Sock prices?" A: "5 AED kids, 8 AED adults. Socks required in play areas" → TRUE (pricing in context, requirement is helpful)
+• Q: "Are socks mandatory?" A: "No, optional" (when context says mandatory) → FALSE (directly contradicts)
+• Q: "Opening hours?" A: "10am-11pm + helpful booking info" → TRUE (hours supported, extra info helpful)
+
+Respond with ONLY a JSON:
+{{
+    "grounded": true/false,
+    "confidence": 0.0-1.0,
+    "reasoning": "focus on whether answer addresses the question with supported primary facts"
+}}"""
+
+        try:
+            from langchain_core.messages import HumanMessage
+            response = self.llm_json_mode.invoke([HumanMessage(content=verification_prompt)])
+            response_text = response.content.strip()
+            
+            print(f"   📥 Verification LLM Response: {response_text}")
+            
+            import json
+            import re
+            json_match = re.search(r'\{[^{}]*\}', response_text)
+            if json_match:
+                result = json.loads(json_match.group())
+                print(f"   ✅ Parsed verification: grounded={result.get('grounded')}, reasoning={result.get('reasoning', 'No reasoning')[:100]}...")
+                return {
+                    "grounded": result.get("grounded", False),
+                    "reason": result.get("reasoning", "LLM verification"),
+                    "confidence": result.get("confidence", 0.0)
+                }
+            else:
+                print(f"⚠️ Answer verification: No JSON found in response: {response_text}")
+                # Be conservative - if verification fails, assume not grounded
+                return {"grounded": False, "reason": "verification_parse_error", "confidence": 0.0}
+                
+        except Exception as e:
+            print(f"❌ Answer verification error: {str(e)}")
+            # Be conservative - if verification fails, assume not grounded
+            return {"grounded": False, "reason": f"verification_error: {str(e)}", "confidence": 0.0}
     
     def _requires_location_clarification(self, question: str, documents: list) -> bool:
         """
@@ -1567,8 +2917,20 @@ Respond with only "YES" or "NO":""",
         question = state["question"]
         chat_history = state.get("chat_history", [])
         
+        # 🔥 LANGGRAPH BEST PRACTICE: Proper session-based message state management
         # Initialize user tracking state if not present
         user_phone = state.get("user_phone")
+        if not user_phone:
+            # Generate phone for new session if not provided
+            user_phone = self.user_tracker.generate_test_phone_number()
+            state["user_phone"] = user_phone
+        
+        # Use phone as session ID for message history
+        session_id = user_phone
+        
+        # IMPORTANT: Don't add message to history yet - let the conversation flow logic handle it
+        # This ensures is_first_interaction() works correctly
+        
         manual_phone = state.get("manual_phone")  # Get manual phone from state if passed
         manual_mall = state.get("manual_mall")    # Get manual mall selection from state if passed
         
@@ -1587,22 +2949,28 @@ Respond with only "YES" or "NO":""",
         # Get or create user profile
         user_profile = self.user_tracker.get_user_profile(user_phone)
         
-        # Extract name from current message if possible
-        name_extraction = self.user_tracker.extract_name_from_message(question, chat_history)
+        # 🚀 PERFORMANCE OPTIMIZATION: Skip LLM extraction if we already have name and location
+        stored_mall = user_profile.get('current_park_location')
+        has_name = bool(user_profile.get("name"))
+        has_stored_location = bool(stored_mall)
         
-        # Update user profile if name was found
-        if name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
-            extracted_name = name_extraction.get("extracted_name")
-            self.user_tracker.update_user_profile(user_phone, extracted_name)
-            user_profile["name"] = extracted_name
+        # 🎯 LANGGRAPH-INSPIRED STATE MACHINE  
+        conversation_state = self._determine_conversation_state(user_profile, question, manual_mall)
+        print(f"📊 Conversation State: {conversation_state}")
         
-        # NEW: Handle first interaction immediately - ask for name and mall preference
-        is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
-        is_name_response = self.user_tracker.is_name_response(question, chat_history)
-        
-        # Detect park location for conversation context (moved up to ensure it's always defined)
-        # Use manual mall selection if provided, otherwise auto-detect from question
-        if manual_mall:
+        # Extract user info based on conversation state
+        if conversation_state == "MANUAL_OVERRIDE":
+            # Manual mall override - still extract name if needed using LLM
+            if not has_name:
+                name_extraction = self.user_tracker.extract_name_from_message(question, chat_history)
+            else:
+                name_extraction = {
+                    "name_found": True,
+                    "extracted_name": user_profile.get("name"),
+                    "confidence": 1.0,
+                    "reasoning": "Already stored in profile"
+                }
+            
             # Convert manual mall selection to location code format
             mall_to_code_mapping = {
                 "Festival City": "FESTIVAL_CITY",
@@ -1611,10 +2979,119 @@ Respond with only "YES" or "NO":""",
                 "General": "General"
             }
             detected_location = mall_to_code_mapping.get(manual_mall, "General")
-            print(f"🎯 Using manual mall selection: {manual_mall} → {detected_location}")
+            print(f"🎯 Manual override: {manual_mall} → {detected_location}")
+            
+            combined_extraction = {
+                "name": name_extraction.get("extracted_name"),
+                "mall_name": manual_mall,
+                "method": "manual_override"
+            }
+            
+        elif conversation_state == "FAST_PATH":
+            # ⚡ User profile complete - use stored data
+            detected_location = stored_mall
+            
+            combined_extraction = {
+                "name": user_profile.get("name"),
+                "mall_name": {
+                    "YAS_MALL": "Yas Mall",
+                    "DALMA_MALL": "Dalma Mall", 
+                    "FESTIVAL_CITY": "Festival City",
+                    "General": "General"
+                }.get(stored_mall, "General"),
+                "method": "fast_path"
+            }
+            
+            name_extraction = {
+                "name_found": True,
+                "extracted_name": user_profile.get("name"),
+                "confidence": 1.0,
+                "reasoning": "Fast path - stored profile"
+            }
+            print(f"⚡ FAST PATH: Using stored name='{user_profile.get('name')}' and location='{stored_mall}'")
+            
+        else:  # EXTRACT_FROM_INPUT
+            # 🔥 Use LLM to extract user info
+            combined_extraction = self._extract_user_info_with_llm(question, chat_history)
+            
+            # Convert mall name to location code
+            mall_to_code_mapping = {
+                "Yas Mall": "YAS_MALL",
+                "Dalma Mall": "DALMA_MALL", 
+                "Festival City": "FESTIVAL_CITY",
+                "General": "General"
+            }
+            detected_location = mall_to_code_mapping.get(combined_extraction.get("mall_name", "General"), "General")
+            
+            # 🔧 CRITICAL FIX: If no mall detected in current message, use stored preference
+            if detected_location == "General" and user_profile.get('current_park_location'):
+                detected_location = user_profile.get('current_park_location')
+                print(f"🏢 No mall in current message, using stored preference: {detected_location}")
+                # Update extraction result to reflect stored mall
+                reverse_mapping = {
+                    "YAS_MALL": "Yas Mall",
+                    "DALMA_MALL": "Dalma Mall",
+                    "FESTIVAL_CITY": "Festival City"
+                }
+                combined_extraction["mall_name"] = reverse_mapping.get(detected_location, "General")
+            
+            name_extraction = {
+                "name_found": bool(combined_extraction.get("name")),
+                "extracted_name": combined_extraction.get("name"),
+                "confidence": combined_extraction.get("confidence", 0.0),
+                "reasoning": f"LLM extraction: {combined_extraction.get('method', 'llm')}"
+            }
+            name_refusal_status = f", refusal={combined_extraction.get('name_refusal', False)}" if combined_extraction.get('name_refusal') else ""
+            print(f"🔥 LLM EXTRACTION: mall='{combined_extraction.get('mall_name')}' → {detected_location}, name='{name_extraction.get('extracted_name')}'{name_refusal_status}")
+        
+        # 🎯 DETERMINE CONVERSATION FLOW ACTION
+        action_info = self._get_conversation_flow_action(user_profile, combined_extraction, chat_history, question, user_phone)
+        
+        # 🎯 EXECUTE CONVERSATION ACTION (if any)
+        action_result = None
+        if action_info is not None:
+            action_result = self._execute_conversation_action(action_info, question, user_phone, user_profile, 
+                                                            chat_history, combined_extraction, detected_location)
         else:
-            detected_location = self._detect_location_simple(question)
-            print(f"🔍 Auto-detected location from question: {detected_location}")
+            print(f"🔄 Normal question flow - no special action needed")
+        
+        # If state machine handled the response, return it immediately
+        if action_result is not None:
+            print(f"🎯 State machine returning response: {action_result.get('answer', 'No answer')[:100]}...")
+            return action_result
+        
+        # 🔧 CRITICAL FIX: For FAST_PATH users, skip ALL name handling and jump to RAG
+        if conversation_state == "FAST_PATH":
+            print(f"⚡ FAST_PATH: User has name+location, jumping directly to RAG processing for: '{question}'")
+            # Skip ALL the name handling code below
+            # Set required variables that would have been set in name handling
+            is_first_interaction = False  # FAST_PATH means not first interaction
+            is_name_response = False
+            should_request_name = False
+            name_request_message = ""
+            personalized_intro = ""
+            # Jump straight to RAG processing
+        elif conversation_state != "FAST_PATH":
+            # Only do name/location handling for non-FAST_PATH users OR if action already handled
+            
+            # Update user profile if name was found
+            if name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
+                extracted_name = name_extraction.get("extracted_name")
+                self.user_tracker.update_user_profile(user_phone, extracted_name)
+                user_profile["name"] = extracted_name
+                print(f"👤 Updated user profile with name: {extracted_name}")
+        
+            # Handle first interaction and name response detection
+            is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
+            is_name_response = self.user_tracker.is_name_response(question, chat_history)
+        
+        # 🔧 FIX: Define birthday location logic early to avoid scope errors
+        effective_birthday_location = detected_location
+        
+        # Use stored mall preference if current query doesn't specify location
+        if detected_location == "General" and stored_mall:
+            effective_birthday_location = stored_mall
+            print(f"🎂 Using stored mall preference for birthday: {stored_mall}")
         
         # Check if we should ask for mall preference early (after location detection)
         # DISABLED - we now ask for name and mall together in first interaction
@@ -1626,7 +3103,24 @@ Respond with only "YES" or "NO":""",
         personalized_intro = ""
         
         if is_first_interaction and not name_extraction.get("name_found"):
-            # First interaction without name - ask for name AND mall preference together
+            # 🔧 FIX: Only ask for info if we actually need it
+            # If LLM already detected a specific mall (not "General"), we can proceed
+            detected_mall_name = combined_extraction.get("mall_name", "General")
+            mall_already_detected = detected_mall_name != "General"
+            
+            if mall_already_detected:
+                print(f"🎯 First interaction: Mall already detected ({detected_mall_name}), only asking for name")
+                should_request_name = True
+                name_request_message = f"""Hello! 😊 Welcome to Leo & Loona {detected_mall_name}!
+
+To give you the best personalized assistance, could you please tell me your name?
+
+I'll then answer your question about our {detected_mall_name} location! ✨"""
+                # Store the original question with detected mall for later
+                self.user_tracker.store_original_question(user_phone, question, detected_location)
+                print(f"💾 Stored original question for {user_phone}: '{question}' (mall already detected: {detected_location})")
+            else:
+                print(f"🎯 First interaction: No specific mall detected, asking for name AND mall")
             should_request_name = True
             name_request_message = """Hello! 😊 Welcome to Leo & Loona!
 
@@ -1641,9 +3135,11 @@ To give you the best personalized assistance, could you please tell me:
 🌟 **Festival City** (Dubai)
 
 Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨"""
-            # Store the original question for later
-            self.user_tracker.store_original_question(user_phone, question)
-            print(f"👋 First interaction - asking for name AND mall preference, storing question: '{question}'")
+            # Store the original question for later (no mall detected)
+            self.user_tracker.store_original_question(user_phone, question, None)
+            print(f"💾 Stored original question for {user_phone}: '{question}' (no mall detected)")
+            
+            print(f"👋 First interaction - stored question: '{question}'")
             
         elif name_extraction.get("name_found") and name_extraction.get("confidence", 0) > 0.7:
             # Name was just provided - check if we also have mall preference
@@ -1692,6 +3188,38 @@ Which location would you prefer? ✨"""
                 detected_location = stored_mall
                 print(f"👤 Name provided: {extracted_name}, using stored mall preference: {stored_mall}")
                 # Continue to stored question processing below
+            else:
+                # 🔧 FIX: Name provided AND we detected mall from original question
+                # This happens when user asks "ys mall hours", we ask for name, they provide name
+                print(f"👤 Name provided: {extracted_name}, mall already detected: {detected_location}")
+                
+                # Update user profile with name
+                self.user_tracker.update_user_profile(user_phone, extracted_name)
+                
+                # 🎯 CRITICAL: Answer the STORED question, not treat name as new question
+                # First check if we have a stored question
+                has_stored = self.user_tracker.has_stored_question(user_phone)
+                print(f"🔍 Checking for stored question: has_stored={has_stored}")
+                
+                stored_question = self.user_tracker.get_stored_question(user_phone)
+                print(f"🔍 Retrieved stored question: '{stored_question}'")
+                
+                if stored_question:
+                    print(f"🔄 Retrieving stored question: '{stored_question}' to answer with name {extracted_name}")
+                    # Generate greeting + answer the original question
+                    personalized_greeting = self.user_tracker.generate_personalized_greeting(extracted_name)
+                    
+                    # 🔧 FIX: Clear the stored question after retrieving to prevent multiple reads
+                    self.user_tracker.clear_stored_question(user_phone)
+                    
+                    # Answer the stored question with personalization
+                    # 🔧 CRITICAL FIX: Pass the detected location from user's response, not from stored question
+                    detected_mall_name = combined_extraction.get("mall_name", "General")
+                    return self._answer_with_personalization(stored_question, personalized_greeting, user_phone, user_profile, chat_history, name_extraction, detected_mall_name)
+                else:
+                    print(f"⚠️ No stored question found for user {user_phone}")
+                    # NO GREETING LOGIC - just continue to RAG processing
+                    print(f"🔄 No stored question - continuing to RAG processing for: '{question}'")
         
         # NEW: Handle case where user provides ONLY mall but no name
         elif not name_extraction.get("name_found") and detected_location != "General" and not user_profile.get("name"):
@@ -1738,6 +3266,9 @@ Before I can help you further, may I please get your name? This will help me pro
             if stored_question:
                 # Generate greeting + answer the original question
                 personalized_greeting = self.user_tracker.generate_personalized_greeting(extracted_name)
+                
+                # 🔧 FIX: Clear the stored question after retrieving
+                self.user_tracker.clear_stored_question(user_phone)
                 
                 # Answer the stored question with personalization
                 return self._answer_with_personalization(stored_question, personalized_greeting, user_phone, user_profile, chat_history, name_extraction, manual_mall)
@@ -1853,143 +3384,103 @@ Before I can help you further, may I please get your name? This will help me pro
                 "first_interaction_request": True  # Flag to indicate we're asking for name+mall
             }
         
-        # Fast retrieval with fewer documents for speed
-        documents = self.retriever.invoke(question)
-        print(f"🔍 RAG DEBUG - Initial retrieval: {len(documents)} documents for query: '{question}'")
+        # 🔧 CRITICAL FIX: End of name/location handling block (skipped for FAST_PATH users)
+        else:
+            print(f"⚡ FAST_PATH: Skipped all name/location handling - going to RAG")
         
-        # Check if this is an infrastructure query and apply intelligent filtering
-        is_infrastructure_query = self._is_infrastructure_query(question)
+        # 🧠 INTELLIGENT RETRIEVAL SYSTEM - Replace old hardcoded logic
         
-        # Use stored mall preference for document filtering if available
+        # Use stored mall preference for effective location
         effective_location = detected_location
         if detected_location == "General" and user_profile.get('current_park_location'):
             effective_location = user_profile.get('current_park_location')
             print(f"🏢 Using stored mall preference for document filtering: {effective_location}")
         
-        # 🔧 FIX: Define birthday location logic early for later use
-        stored_mall = user_profile.get('current_park_location')
-        effective_birthday_location = detected_location
-        
-        # Use stored mall preference if current query doesn't specify location
-        if detected_location == "General" and stored_mall:
-            effective_birthday_location = stored_mall
-            print(f"🎂 Using stored mall preference for birthday: {stored_mall}")
-        
-        # 🔧 FIX: Better pricing query detection - check stored question too
-        stored_question = self.user_tracker.get_stored_question(user_phone) or ""
-        combined_query = f"{question} {stored_question}".lower()
-        
-        is_pricing_query = any(term in combined_query for term in [
-            'price', 'pricing', 'cost', 'sock', 'ticket', 'how much', 'price list', 
-            'rate', 'charge', 'fee', 'aed', 'money', 'payment'
-        ])
-        print(f"🔍 RAG DEBUG - is_pricing_query: {is_pricing_query} | is_infrastructure_query: {is_infrastructure_query}")
-        print(f"🔍 RAG DEBUG - effective_location: {effective_location}")
-        print(f"🔍 RAG DEBUG - combined_query: '{combined_query[:100]}...'")
-        
-        # Apply location and content-type filtering if relevant
-        if is_infrastructure_query:
-            content_type_priority = 'Infrastructure Information'
-            documents = self._filter_documents_by_location_and_type(
-                documents, effective_location, content_type_priority
-            )
-            print(f"🏗️ Applied infrastructure filtering for {effective_location}: {len(documents)} docs remaining")
-        elif is_pricing_query:
-            # For pricing queries: Force include general pricing documents + location-specific ones
-            print(f"💰 PRICING QUERY DETECTED - forcing general pricing docs + {effective_location} docs")
+        # Step 1: Execute Parallel Retrieval (No Classification Required)  
+        print(f"🚀 PARALLEL RETRIEVAL APPROACH: Direct multi-source retrieval")
+        try:
+            top_documents = self._parallel_retrieval_optimized(question, effective_location)
+            print(f"✅ Parallel retrieval completed: {len(top_documents)} diverse, high-quality documents selected")
+        except Exception as e:
+            print(f"❌ Parallel retrieval failed: {str(e)}")
+            print(f"🔄 Falling back to simple retrieval...")
             
-            # Get location-specific documents first
-            location_docs = self._filter_documents_by_location(documents, effective_location)
-            
-            # 🔧 FORCE RETRIEVE: Get general pricing documents using direct search
-            general_pricing_queries = [
-                "socks pricing AED kids adults 5 8", 
-                "Leo Loona merchandise pricing socks",
-                "pricing information tickets socks merchandise"
-            ]
-            
-            general_docs = []
-            for pricing_query in general_pricing_queries:
-                try:
-                    pricing_docs = self.retriever.invoke(pricing_query)
-                    # Look for docs that contain actual pricing (5 AED, 8 AED)
-                    for doc in pricing_docs[:3]:  # Check top 3 from each search
-                        if any(term in doc.page_content for term in ["5 AED", "8 AED", "Socks:", "**Socks"]):
-                            general_docs.append(doc)
-                            print(f"  ✅ Found pricing doc: {doc.metadata.get('source', 'Unknown')}")
-                            break  # Only need one good pricing doc per query
-                    if general_docs:  # Found pricing docs, stop searching
-                        break
-                except Exception as e:
-                    print(f"  ⚠️ Error in pricing search: {e}")
-            
-            # 🔧 FALLBACK: If no pricing docs found, search more broadly
-            if not general_docs:
-                print(f"  🔍 No pricing docs found, searching consolidated FAQ...")
-                try:
-                    faq_docs = self.retriever.invoke("consolidated FAQ pricing information")
-                    for doc in faq_docs[:5]:
-                        if "consolidated_faq" in doc.metadata.get('source', '').lower():
-                            general_docs.append(doc)
-                            print(f"  📄 Added FAQ doc: {doc.metadata.get('source', 'Unknown')}")
-                            if len(general_docs) >= 2:  # Get 2 FAQ docs
-                                break
-                except Exception as e:
-                    print(f"  ⚠️ Error in FAQ search: {e}")
-            
-            # Combine location docs + forced general docs
-            documents = location_docs[:2] + general_docs[:2]  # Max 2 from each type
-            
-            print(f"💰 PRICING DOCS: {len(location_docs[:2])} from {effective_location} + {len(general_docs[:2])} forced general = {len(documents)} total")
-        else:
-            original_count = len(documents)
-            documents = self._filter_documents_by_location(documents, effective_location)
-            print(f"📍 Location filtering: {original_count} → {len(documents)} docs for {effective_location}")
+            # Fallback to simple retrieval if parallel system fails
+            enhanced_query = f"{question} {effective_location}" if effective_location != "General" else question
+            try:
+                documents = self.retriever.invoke(enhanced_query)
+                top_documents = documents[:5]
+                print(f"🔄 Simple retrieval: {len(top_documents)} documents from fallback")
+            except Exception as e2:
+                print(f"❌ All retrieval methods failed: {str(e2)}")
+                # Return empty list if everything fails
+                top_documents = []
         
-        print(f"🔍 RAG DEBUG - Final document count before taking top 3: {len(documents)}")
+        # 🔍 ALWAYS LOG: What documents are actually retrieved for any query
+        # Simple logging - no hardcoded classifications
+        print(f"📊 Sending {len(top_documents)} documents to LLM")
+        for i, doc in enumerate(top_documents):
+            location = doc.metadata.get('location', 'UNKNOWN')
+            source = doc.metadata.get('source', 'Unknown')[:30]
+            print(f"  #{i+1}: [{location}] {source}...")
         
-        # Take only top 3 most relevant documents for speed
-        top_documents = documents[:3]
-        print(f"🔍 RAG DEBUG - Selected top {len(top_documents)} documents for LLM")
-        
-        # 🔍 ALWAYS LOG: What documents are actually retrieved for any pricing query
-        if is_pricing_query:
-            print(f"💰 PRICING DEBUG - Retrieved Documents:")
-            for i, doc in enumerate(top_documents):
-                location = doc.metadata.get('location', 'UNKNOWN')
-                source = doc.metadata.get('source', 'Unknown')
-                content_preview = doc.page_content[:300].replace('\n', ' ')
-                print(f"  Doc {i+1} [{location}|{source}]: {content_preview}...")
-                
-                # Check if document contains pricing information
-                if "AED" in doc.page_content:
-                    aed_lines = [line.strip() for line in doc.page_content.split('\n') if 'AED' in line]
-                    for line in aed_lines[:3]:  # Show first 3 AED lines
-                        print(f"    💰 {line}")
-                
-                # Check specifically for socks
-                if "sock" in doc.page_content.lower():
-                    sock_lines = [line.strip() for line in doc.page_content.split('\n') if 'sock' in line.lower()]
-                    for line in sock_lines:
-                        print(f"    🧦 {line}")
-        
-        # Quick format documents
+        # 🛡️ ANTI-HALLUCINATION: Validate context before proceeding
         context = "\n\n".join(doc.page_content for doc in top_documents)
         
-        # 🔍 ALWAYS LOG: Context being sent to LLM for pricing queries
-        if is_pricing_query:
-            print(f"🤖 PRICING DEBUG - Context being sent to LLM:")
-            print(f"  Context length: {len(context)} characters")
-            print(f"  Context preview: {context[:500]}...")
+        # 📊 DETAILED CONTEXT LOGGING
+        print(f"📊 CONTEXT ASSEMBLY DEBUG:")
+        print(f"   📝 Total documents: {len(top_documents)}")
+        print(f"   📏 Context length: {len(context)} characters")
+        print(f"   🔍 Context preview (first 300 chars): {context[:300]}...")
+        print(f"   🎯 Looking for keywords in context: {[word for word in ['sock', 'mandatory', 'require'] if word in context.lower()]}")
+        
+        # 📋 DOCUMENT BREAKDOWN LOGGING
+        for i, doc in enumerate(top_documents):
+            preview = doc.page_content[:150].replace('\n', ' ')
+            location = doc.metadata.get('location', 'UNKNOWN')
+            source = doc.metadata.get('source', 'Unknown')
+            print(f"   📄 Doc {i+1}: [{location}|{source}] {preview}...")
             
-            if "sock" in question.lower():
-                if "5 AED" in context and "8 AED" in context:
-                    print(f"  ✅ Context contains CORRECT sock pricing (5 AED, 8 AED)!")
-                else:
-                    print(f"  ❌ Context does NOT contain correct sock pricing!")
-                    # Show all AED mentions in context
-                    aed_mentions = [line.strip() for line in context.split('\n') if 'AED' in line]
-                    print(f"  💰 AED mentions in context: {aed_mentions[:5]}")  # First 5
+            # Check for specific keywords in each document
+            sock_mentions = doc.page_content.lower().count('sock')
+            mandatory_mentions = doc.page_content.lower().count('mandatory')
+            if sock_mentions > 0 or mandatory_mentions > 0:
+                print(f"      🎯 KEYWORD HITS: 'sock'={sock_mentions}, 'mandatory'={mandatory_mentions}")
+        
+        # Check if we have sufficient context to answer the question
+        context_quality = self._validate_context_quality(question, context, top_documents)
+        print(f"🔍 CONTEXT QUALITY CHECK: sufficient={context_quality['sufficient']}, reason={context_quality['reason']}, confidence={context_quality.get('confidence', 'N/A')}")
+        
+        if not context_quality["sufficient"]:
+            # No sufficient information - return "I don't know" response
+            answer = self._generate_insufficient_info_response(question, context_quality["reason"])
+            
+            # Log the insufficient context issue
+            self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+            
+            return {
+                "generation": answer,
+                "source_documents": top_documents,
+                "documents": top_documents,
+                "question": question,
+                "chat_history": chat_history,
+                "user_phone": user_phone,
+                "user_name": user_profile.get("name", ""),
+                "user_profile": user_profile,
+                "name_extraction_result": name_extraction,
+                "should_request_name": should_request_name,
+                "name_request_message": name_request_message,
+                "conversation_logged": True,
+                "insufficient_context": True
+            }
+        
+        # ✅ SUFFICIENT CONTEXT DETECTED - Proceeding with LLM generation
+        print(f"✅ SUFFICIENT CONTEXT DETECTED - Proceeding with LLM generation")
+        print(f"   📍 Location: {effective_location}")
+        print(f"   📏 Context length: {len(context)} characters")
+        
+        # Context is ready for LLM generation
+        print(f"🤖 Sending context to LLM for generation")
         
         # Enhanced chat history formatting (last 4 messages for better context)
         chat_context = "No previous conversation."
@@ -2146,10 +3637,17 @@ To give you the most helpful information, which of our magical Leo & Loona locat
 Or if you'd like general information about all locations, just let me know! ✨"""
             
         else:
-            # Fast prompt with Leo & Loona personality and date/time awareness
+            # 🛡️ ANTI-HALLUCINATION: Strengthened prompt to prevent hallucination
             fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park. You speak with genuine enthusiasm and a caring tone, like a host who greets guests at the park entrance.
 
 {datetime_context}
+
+🛡️ CRITICAL ANTI-HALLUCINATION RULES:
+- You MUST use ONLY the information provided in the "Context from Leo & Loona FAQ" section below
+- If the context does NOT contain the answer to the question, you MUST say "I don't have that specific information"
+- DO NOT make up, guess, or infer any information not explicitly stated in the provided context
+- DO NOT use your general knowledge about amusement parks - ONLY use the provided Leo & Loona context
+- If context is empty or irrelevant, admit you don't know and suggest contacting the team
 
 IMPORTANT RESTRICTIONS:
 - ONLY answer questions about Leo & Loona amusement park
@@ -2171,7 +3669,7 @@ IMPORTANT: Use the current date/time information above INTERNALLY to provide acc
 - "We're currently open" or "we're closed right now" (without stating exact time)
 - Use phrases like "today", "right now", "current" instead of specific dates/times
 
-Context from Leo & Loona FAQ:
+🛡️ Context from Leo & Loona FAQ (USE ONLY THIS INFORMATION):
 {context}
 
 === CONVERSATION HISTORY ===
@@ -2180,27 +3678,47 @@ Context from Leo & Loona FAQ:
 
 CURRENT QUESTION: {question}
 
-IMPORTANT: If the guest is asking "can you tell me the pricing of it" or similar, refer to what "it" means from the conversation history above. Continue the conversation naturally by understanding the context.
+🛡️ REMINDER: Answer using ONLY the information in the provided context above. If the context doesn't contain the answer, honestly say you don't have that information and suggest contacting our team.
 
-Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
+Answer as Leo & Loona's warm, welcoming park host (using ONLY provided context):"""
+            
+            # 🤖 LLM GENERATION LOGGING
+            print(f"🤖 GENERATING LLM RESPONSE:")
+            print(f"   📝 Prompt length: {len(fast_prompt)} characters")
+            print(f"   🎯 Model: {self.model_config.llm_provider.value}")
+            print(f"   📤 Calling LLM with context containing keywords: {[word for word in ['sock', 'mandatory', 'require', 'safety'] if word in fast_prompt.lower()]}")
             
             # Generate answer using the fast prompt
-            response = self.llm.invoke([HumanMessage(content=fast_prompt)])
-            answer = response.content
-            
-            # 🔍 ALWAYS LOG: LLM response for pricing queries
-            if is_pricing_query:
-                print(f"🤖 PRICING DEBUG - LLM Response:")
-                print(f"  Response length: {len(answer)} characters")
-                print(f"  Response: {answer}")
+            try:
+                response = self.llm.invoke([HumanMessage(content=fast_prompt)])
+                answer = response.content
                 
-                if "sock" in question.lower():
-                    if "5 AED" in answer and "8 AED" in answer:
-                        print(f"  ✅ LLM generated CORRECT sock pricing!")
-                    elif any(wrong in answer for wrong in ["20-40", "50-100", "25-40", "30-45", "65-80", "60-80"]):
-                        print(f"  ❌ LLM generated WRONG/HALLUCINATED pricing!")
-                    else:
-                        print(f"  ⚠️ LLM response unclear - check manually")
+                print(f"   📥 LLM Response received: {len(answer)} characters")
+                print(f"   📄 Response preview: {answer[:200]}...")
+                print(f"   🔍 Response contains keywords: {[word for word in ['sock', 'mandatory', 'require', 'safety'] if word in answer.lower()]}")
+                
+            except Exception as e:
+                print(f"   ❌ LLM Generation failed: {str(e)}")
+                raise
+            
+            # 🛡️ ANTI-HALLUCINATION: Verify the answer is grounded in provided context
+            print(f"🛡️ VERIFYING ANSWER GROUNDING:")
+            print(f"   📝 Answer length: {len(answer)} characters")
+            print(f"   🔍 Answer contains keywords: {[word for word in ['sock', 'mandatory', 'require', 'safety'] if word in answer.lower()]}")
+            
+            verification_result = self._verify_answer_grounding(question, answer, context)
+            print(f"   📊 Verification result: grounded={verification_result['grounded']}, confidence={verification_result.get('confidence', 'N/A')}")
+            
+            if not verification_result["grounded"]:
+                print(f"🚨 HALLUCINATION DETECTED: {verification_result['reason']}")
+                # Replace with safe "I don't know" response
+                answer = self._generate_insufficient_info_response(question, "Generated response not grounded in context")
+                print(f"🛡️ Replaced with safe response: {answer[:100]}...")
+            else:
+                print(f"✅ Answer verification passed: {verification_result['confidence']:.2f} confidence")
+            
+            # LLM response generated successfully
+            print(f"✅ LLM response generated: {len(answer)} characters")
         
         # Add name and mall request to answer if needed
         if should_request_name and name_request_message:
@@ -2208,6 +3726,17 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
         
         # Log the bot response
         self.user_tracker.log_conversation(user_phone, user_profile.get("name"), answer, is_user=False)
+        
+        # 🔥 LANGGRAPH BEST PRACTICE: Add AI response to chat history
+        # This ensures the system remembers what it said for proper context
+        if answer and answer.strip():
+            chat_history = state.get("chat_history", []).copy()
+            chat_history.append({
+                "role": "assistant",
+                "content": answer,
+                "timestamp": datetime.now().isoformat()
+            })
+            state["chat_history"] = chat_history
         
         return {
             "generation": answer,
@@ -2241,8 +3770,19 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             detected_location = mall_to_code_mapping.get(manual_mall, "General")
             print(f"🎯 Using manual mall selection for stored question: {manual_mall} → {detected_location}")
         else:
-            detected_location = self._detect_location_simple(stored_question)
-            print(f"🎯 Location detected from stored question '{stored_question}': {detected_location}")
+            # Use LLM extraction for stored question (handles typos like "ys mall", "daaalma")
+            extraction_result = self._extract_user_info_with_llm(stored_question, chat_history)
+            mall_name = extraction_result.get("mall_name", "General")
+            
+            # Convert to location code format
+            mall_mapping = {
+                "Yas Mall": "YAS_MALL",
+                "Dalma Mall": "DALMA_MALL", 
+                "Festival City": "FESTIVAL_CITY",
+                "General": "General"
+            }
+            detected_location = mall_mapping.get(mall_name, "General")
+            print(f"🎯 LLM-detected location from stored question '{stored_question}': {mall_name} → {detected_location}")
         
         # Handle Bitrix lead management for stored question (create new OR update existing)
         if self.lead_manager and user_profile.get("name"):
@@ -2291,13 +3831,27 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
             except Exception as e:
                 print(f"❌ Error managing Bitrix lead for stored question: {str(e)}")
         
-        # Get documents for the stored question
-        documents = self.retriever.invoke(stored_question)
-        top_documents = documents[:3]
+        # 🚀 Use Parallel Retrieval for stored questions (No Classification)
+        print(f"🔄 Using Parallel Retrieval for stored question: '{stored_question}'")
+        try:
+            top_documents = self._parallel_retrieval_optimized(stored_question, detected_location)
+            print(f"✅ Parallel retrieval for stored question: {len(top_documents)} documents")
+        except Exception as e:
+            print(f"❌ Parallel retrieval failed for stored question: {str(e)}")
+            print(f"🔄 Falling back to simple retrieval for stored question...")
+            
+            # Fallback to simple retrieval
+            try:
+                documents = self.retriever.invoke(stored_question)
+                top_documents = documents[:5]
+                print(f"🔄 Simple fallback: {len(top_documents)} documents")
+            except Exception as e2:
+                print(f"❌ All retrieval failed for stored question: {str(e2)}")
+                top_documents = []
+        
         context = "\n\n".join(doc.page_content for doc in top_documents)
         
-        # Check location and Leo & Loona relevance for stored question
-        location_needed = self._check_location_clarification_needed(stored_question, context, detected_location)
+        # Skip location clarification - we already have the user-provided location
         is_leo_loona_question = self._is_leo_loona_question(stored_question, context)
         
         # Add standard opening hours if needed
@@ -2306,11 +3860,19 @@ Answer as Leo & Loona's warm, welcoming park host (Leo & Loona topics ONLY):"""
         
         if not is_leo_loona_question:
             answer = f"{greeting} I'm specifically here to help with questions about Leo & Loona amusement park! 🎠 I'd love to tell you about our magical attractions, ticket prices, opening hours, birthday parties, or anything else related to Leo & Loona. What would you like to know about our wonderful park?"
-        elif location_needed:
-            answer = f"{greeting} Leo & Loona has magical locations at different malls. Could you please let me know which location you're asking about?\n\nOur Leo & Loona parks are located at:\n🎪 **Dalma Mall** (Abu Dhabi)\n🎪 **Yas Mall** (Abu Dhabi)\n🎪 **Festival City Mall** (Dubai)\n\nWhich one would you like to know about? ✨"
         else:
+            # Generate answer using Smart Staged Retrieval results - no location clarification needed
             # Generate normal answer with personalization
             datetime_context = self._format_datetime_context()
+            
+            # Format chat history for context
+            chat_context = ""
+            if chat_history:
+                chat_context = "\n\nPrevious conversation:\n"
+                for msg in chat_history[-4:]:  # Include last 4 messages for context
+                    role = "User" if msg.get("is_user", False) else "Assistant"
+                    content = msg.get("content", "")
+                    chat_context += f"{role}: {content}\n"
             
             fast_prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park.
 
@@ -2320,10 +3882,11 @@ IMPORTANT: Start your response with this exact greeting: "{greeting}"
 
 Context information:
 {context}
+{chat_context}
 
-Question: {stored_question}
+Original Question: {stored_question}
 
-Answer as Leo & Loona's warm, welcoming park host with the personalized greeting first:"""
+Answer as Leo & Loona's warm, welcoming park host with the personalized greeting first. Use the conversation history above to understand what has already been confirmed (like mall location):"""
             
             response = self.llm.invoke([HumanMessage(content=fast_prompt)])
             answer = response.content
@@ -2516,7 +4079,7 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
             result = self.graph.invoke(initial_state)
             
             return {
-                "answer": result.get("generation", "No answer generated"),
+                "answer": result.get("generation", result.get("answer", "No answer generated")),
                 "source_documents": result.get("source_documents", []),
                 # Include user information for Streamlit display
                 "user_info": {
@@ -2553,3 +4116,437 @@ Answer as Leo & Loona's warm, welcoming park host with the personalized greeting
             return self.graph.get_graph().draw_mermaid()
         except Exception as e:
             return f"Error generating graph visualization: {str(e)}"
+    
+    # 🎯 LangGraph-Inspired State Machine Functions
+    
+    def _determine_conversation_state(self, user_profile: dict, question: str, manual_mall: str = None) -> str:
+        """🎯 LangGraph-inspired state machine for conversation flow"""
+        
+        # Check what we have in user profile
+        has_name = bool(user_profile.get("name"))
+        has_stored_location = bool(user_profile.get("current_park_location"))
+        
+        if manual_mall:
+            return "MANUAL_OVERRIDE"
+        elif has_name and has_stored_location:
+            return "FAST_PATH"  # Complete profile - no extraction needed
+        else:
+            return "EXTRACT_FROM_INPUT"  # Need to extract info from user message
+    
+    def _get_conversation_flow_action(self, user_profile: dict, combined_extraction: dict, 
+                                    chat_history: list, question: str, user_phone: str) -> dict:
+        """🎯 LangGraph-inspired conversation flow handler with name refusal handling"""
+        
+        is_first_interaction = self.user_tracker.is_first_interaction(chat_history)
+        name_found = bool(combined_extraction.get("name"))
+        mall_detected = combined_extraction.get("mall_name", "General") != "General"
+        name_refused = combined_extraction.get("name_refusal", False)
+        
+        # Has stored question from previous interaction?
+        has_stored_question = self.user_tracker.has_stored_question(user_phone)
+        
+        # 🚫 HANDLE NAME REFUSAL (LangGraph HITL Pattern)
+        if name_refused:
+            refusal_count = self.user_tracker.increment_name_refusal_count(user_phone)
+            print(f"🚫 Name refusal detected! Count: {refusal_count}/2")
+            
+            if refusal_count == 1:
+                # First refusal - politely rephrase request
+                return {"action": "polite_rephrase_name_request", "mall_name": combined_extraction.get("mall_name"), "refusal_count": 1}
+            elif refusal_count >= 2:
+                # Second refusal - proceed without name
+                return {"action": "skip_name_and_proceed", "mall_name": combined_extraction.get("mall_name"), "refusal_count": refusal_count}
+        
+        print(f"🔄 Flow State: first={is_first_interaction}, name={name_found}, mall={mall_detected}, stored_q={has_stored_question}")
+        
+        if is_first_interaction and not name_found and not name_refused:
+            # FIRST INTERACTION: Need to collect user info
+            if mall_detected:
+                return {"action": "request_name_only", "mall_name": combined_extraction.get("mall_name")}
+            else:
+                return {"action": "request_name_and_mall"}
+                
+        elif name_found and has_stored_question:
+            # NAME PROVIDED: Reset refusal count and answer stored question
+            self.user_tracker.reset_name_refusal_count(user_phone)
+            return {"action": "answer_stored_question", "name": combined_extraction.get("name")}
+            
+        elif name_found and not has_stored_question:
+            # NAME PROVIDED: Reset refusal count and let questions flow normally
+            self.user_tracker.reset_name_refusal_count(user_phone)
+            # Check if current question is actually a new question (not just providing name)
+            if len(question.split()) > 2 and not self.user_tracker.is_name_response(question, chat_history):
+                # User is asking a real question - let it flow to normal RAG
+                return None
+            else:
+                return {"action": "generic_greeting", "name": combined_extraction.get("name")}
+            
+        else:
+            # NORMAL INTERACTION: No special action needed - let it flow to regular RAG
+            return None  # This will bypass action execution and go to normal RAG flow
+    
+    def _execute_conversation_action(self, action_info: dict, question: str, user_phone: str, 
+                                   user_profile: dict, chat_history: list, combined_extraction: dict, 
+                                   detected_location: str) -> dict:
+        """🎯 Execute the determined conversation action"""
+        
+        action = action_info["action"]
+        print(f"🎬 Executing action: {action}")
+        
+        if action == "request_name_only":
+            # Store question and ask for name only (only if not already stored)
+            if not self.user_tracker.has_stored_question(user_phone):
+                mall_name = action_info["mall_name"]
+                mall_to_code = {"Festival City": "FESTIVAL_CITY", "Dalma Mall": "DALMA_MALL", "Yas Mall": "YAS_MALL"}
+                detected_mall_code = mall_to_code.get(mall_name, "General")
+                self.user_tracker.store_original_question(user_phone, question, detected_mall_code)
+                print(f"💾 Stored original question for {user_phone}: '{question}' (mall already detected: {detected_mall_code})")
+            else:
+                print(f"📋 Keeping existing stored question for {user_phone}, user just clarified mall: '{question}'")
+            mall_name = action_info["mall_name"]
+            
+            answer = f"""Hello! 😊 Welcome to Leo & Loona {mall_name}!
+
+To give you the best personalized assistance, could you please tell me your name?
+
+I'll then answer your question about our {mall_name} location! ✨"""
+            
+            response = self._create_response(answer, [], question, chat_history, user_profile, detected_location)
+            print(f"🎯 Created request_name_only response: {len(answer)} chars")
+            return response
+        
+        elif action == "request_name_and_mall":
+            # Store question and ask for both name and mall (only if not already stored)
+            if not self.user_tracker.has_stored_question(user_phone):
+                self.user_tracker.store_original_question(user_phone, question, None)
+                print(f"💾 Stored original question for {user_phone}: '{question}' (no mall detected)")
+            else:
+                print(f"📋 Keeping existing stored question for {user_phone}, user provided: '{question}'")
+            
+            answer = """Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨"""
+            
+            return self._create_response(answer, [], question, chat_history, user_profile, detected_location)
+        
+        elif action == "answer_stored_question":
+            # Get stored question and answer it with personalization
+            stored_question = self.user_tracker.get_stored_question(user_phone)
+            name = action_info["name"]
+            
+            # Clear the stored question
+            self.user_tracker.clear_stored_question(user_phone)
+            
+            # Update user profile
+            self.user_tracker.update_user_profile(user_phone, name)
+            user_profile["name"] = name  # Update local copy immediately
+            
+            # Generate personalized greeting
+            greeting = self.user_tracker.generate_personalized_greeting(name)
+            
+            # Answer the stored question with personalization (includes Bitrix integration)
+            # 🔧 CRITICAL FIX: Use the mall from original question storage, not from name-only response
+            # When user provides only name, we should use the mall detected when question was stored
+            detected_mall_name = combined_extraction.get("mall_name", "General")
+            
+            # If no mall detected in current response, check if we have a stored mall from when question was saved
+            if detected_mall_name == "General":
+                # Try to get the mall from the stored question context
+                stored_question_info = self.user_tracker.get_stored_question_info(user_phone)
+                if stored_question_info and stored_question_info.get("detected_mall"):
+                    detected_mall_name = stored_question_info.get("detected_mall")
+                    print(f"🔧 Using stored mall from original question: {detected_mall_name}")
+            
+            return self._answer_with_personalization(stored_question, greeting, user_phone, 
+                                                   user_profile, chat_history, combined_extraction, detected_mall_name)
+        
+        
+        elif action == "generic_greeting":
+            # Just greet the user - includes Bitrix lead creation if applicable
+            name = action_info["name"]
+            
+            # Update user profile
+            self.user_tracker.update_user_profile(user_phone, name)
+            user_profile["name"] = name  # Update local copy immediately
+            
+            # Handle Bitrix lead management for generic greeting
+            lead_result = None
+            if self.lead_manager and user_profile.get("name"):
+                try:
+                    # Check if we should create a new lead
+                    if self.lead_manager.should_create_lead(user_profile, chat_history + [{"role": "user", "content": question}]):
+                        lead_result = self.lead_manager.create_chatbot_lead(
+                            user_info=user_profile,
+                            park_location=detected_location
+                        )
+                        
+                        if lead_result:
+                            self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                            user_profile['bitrix_lead_id'] = lead_result.get('lead_id')
+                            print(f"✅ Lead created for generic greeting: {lead_result.get('lead_id', 'Unknown ID')}")
+                except Exception as e:
+                    print(f"⚠️ Bitrix error in generic greeting: {e}")
+                    lead_result = None
+            
+            answer = f"Thank you, {name}! 😊 How can I help you with Leo & Loona today?"
+            
+            # Create response with lead info
+            response = self._create_response(answer, [], question, chat_history, user_profile, detected_location)
+            if lead_result:
+                response["lead_created"] = lead_result
+            return response
+        
+        elif action == "polite_rephrase_name_request":
+            # 🚫 First name refusal - politely rephrase the request
+            mall_name = action_info.get("mall_name", "")
+            mall_text = f" {mall_name}" if mall_name != "General" else ""
+            
+            answer = f"""I completely understand if you'd prefer some privacy! 😊
+            
+No worries at all - sharing your name is entirely optional. However, having your name would help me provide you with a more personalized experience at Leo & Loona{mall_text}.
+
+Would you be comfortable sharing just your first name? If not, that's perfectly fine too - I'm here to help either way! ✨
+
+What would you like to know about Leo & Loona?"""
+            
+            print(f"🎯 Created polite rephrase response: {len(answer)} chars")
+            return self._create_response(answer, [], question, chat_history, user_profile, detected_location)
+        
+        elif action == "skip_name_and_proceed":
+            # 🚫 Second name refusal - proceed without name gracefully  
+            mall_name = action_info.get("mall_name", "")
+            has_stored_question = self.user_tracker.has_stored_question(user_phone)
+            
+            # 🔧 CRITICAL: Reload user profile to get latest stored mall preference
+            user_profile = self.user_tracker.get_user_profile(user_phone)
+            
+            # Use stored mall preference if available (from earlier interaction)
+            if mall_name == "General" and user_profile.get('current_park_location'):
+                stored_location = user_profile.get('current_park_location')
+                print(f"🏢 Using stored mall preference for name refusal: {stored_location}")
+                detected_location = stored_location  # Update detected_location
+                # Update mall_name for display
+                reverse_mapping = {
+                    "YAS_MALL": "Yas Mall",
+                    "DALMA_MALL": "Dalma Mall",
+                    "FESTIVAL_CITY": "Festival City"
+                }
+                mall_name = reverse_mapping.get(stored_location, "General")
+            
+            # 🔧 CREATE BITRIX LEAD with "Unknown User" name
+            lead_result = None
+            unknown_user_name = "Unknown User"
+            
+            # Update user profile with "Unknown User" name
+            self.user_tracker.update_user_profile(user_phone, unknown_user_name)
+            user_profile["name"] = unknown_user_name
+            
+            if self.lead_manager:
+                try:
+                    # Create lead for user who refused to provide name with correct location
+                    lead_result = self.lead_manager.create_chatbot_lead(
+                        user_info=user_profile,
+                        park_location=detected_location  # This now uses the stored location if available
+                    )
+                    
+                    if lead_result:
+                        self.user_tracker.update_user_lead_info(user_phone, lead_result.get('lead_id'), "created", detected_location)
+                        user_profile['bitrix_lead_id'] = lead_result.get('lead_id')
+                        print(f"✅ Lead created for name refusal user: {lead_result.get('lead_id', 'Unknown ID')} (Unknown User)")
+                except Exception as e:
+                    print(f"⚠️ Bitrix error for unknown user: {e}")
+                    lead_result = None
+            
+            if has_stored_question:
+                # Answer their original stored question without personalization
+                stored_question = self.user_tracker.get_stored_question(user_phone)
+                self.user_tracker.clear_stored_question(user_phone)
+                
+                # 🔧 CRITICAL FIX: Extract location from stored question if it contains one
+                if stored_question:
+                    stored_extraction = self._extract_user_info_with_llm(stored_question, [])
+                    stored_mall = stored_extraction.get("mall_name", "General")
+                    if stored_mall != "General":
+                        # Update detected_location with mall from stored question
+                        mall_to_code = {
+                            "Yas Mall": "YAS_MALL",
+                            "Dalma Mall": "DALMA_MALL",
+                            "Festival City": "FESTIVAL_CITY"
+                        }
+                        new_location = mall_to_code.get(stored_mall, detected_location)
+                        if new_location != detected_location:
+                            print(f"🎯 Extracted mall from stored question: '{stored_mall}' → {new_location}")
+                            detected_location = new_location
+                
+                answer = f"""No problem at all! I completely respect your privacy. 😊
+
+"""
+                # Process the stored question using the SAME retrieval logic as normal flow
+                print(f"🔍 Processing stored question: '{stored_question}' for location: {detected_location}")
+                
+                # 🔧 CRITICAL FIX: Enhance stored question query with location for better retrieval
+                enhanced_stored_query = stored_question
+                if detected_location and detected_location != "General":
+                    # Add location name to stored question for better semantic matching
+                    location_names = {
+                        "YAS_MALL": "Yas Mall",
+                        "DALMA_MALL": "Dalma Mall",
+                        "FESTIVAL_CITY": "Festival City"
+                    }
+                    location_name = location_names.get(detected_location, "")
+                    if location_name:
+                        enhanced_stored_query = f"{stored_question} {location_name}"
+                        print(f"🔍 Enhanced stored query with location: '{stored_question}' → '{enhanced_stored_query}'")
+                
+                # Use the same retrieval approach as the normal fast_retrieve_and_generate flow
+                documents = self.retriever.invoke(enhanced_stored_query)
+                print(f"🔍 Retrieved {len(documents)} documents for stored question")
+                
+                # Apply location filtering if we have a specific location (same as normal flow)
+                # CRITICAL: Use the updated detected_location which now includes stored preference
+                if detected_location and detected_location != "General":
+                    print(f"🏢 Applying location filtering for: {detected_location}")
+                    
+                    # Filter documents by location (same logic as normal flow)
+                    location_filtered_docs = []
+                    other_docs = []
+                    
+                    for doc in documents:
+                        doc_content_lower = doc.page_content.lower()
+                        # Check both content and metadata for location
+                        doc_location = doc.metadata.get('location', '').upper()
+                        
+                        # Match by metadata location OR content
+                        if (doc_location == detected_location or 
+                            detected_location.lower().replace("_", " ") in doc_content_lower):
+                            location_filtered_docs.append(doc)
+                        else:
+                            other_docs.append(doc)
+                    
+                    # Prioritize location-specific documents
+                    final_docs = location_filtered_docs[:3] + other_docs[:2]
+                    documents = final_docs[:5]
+                    
+                    print(f"📍 Location filtering: {len(location_filtered_docs)} location-specific, {len(other_docs)} general → Using {len(documents)} total")
+                
+                # Debug: Show what documents were retrieved
+                for i, doc in enumerate(documents[:3]):
+                    preview = doc.page_content[:100].replace('\n', ' ')
+                    print(f"🔍 Doc {i+1}: {preview}...")
+                
+                rag_answer = self._generate_answer_from_documents(stored_question, documents[:5], detected_location)
+                answer += rag_answer
+                
+                print(f"🎯 Answered stored question without name: {len(answer)} chars")
+                response = self._create_response(answer, documents, stored_question, chat_history, user_profile, detected_location)
+                if lead_result:
+                    response["lead_created"] = lead_result
+                return response
+            else:
+                # No stored question - general greeting
+                mall_text = f" at {mall_name}" if mall_name != "General" else ""
+                
+                answer = f"""That's perfectly fine! I'm here to help you with any questions about Leo & Loona{mall_text}. 😊
+
+What would you like to know? I can tell you about:
+🎠 **Attractions & Rides**
+🎫 **Ticket Prices & Packages** 
+🕐 **Opening Hours**
+🎉 **Birthday Parties & Events**
+🍿 **Food & Dining Options**
+📍 **Location & Directions**
+
+Just ask me anything about our magical family amusement park! ✨"""
+                
+                print(f"🎯 Created skip-name general response: {len(answer)} chars")
+                response = self._create_response(answer, [], question, chat_history, user_profile, detected_location)
+                if lead_result:
+                    response["lead_created"] = lead_result
+                return response
+        
+        else:  # process_question
+            # Normal question processing - continue with existing flow
+            return None  # Signal to continue with normal processing
+    
+    def _create_response(self, answer: str, documents: list, question: str, chat_history: list, 
+                        user_profile: dict, detected_location: str) -> dict:
+        """Create a LangGraph-compatible response object"""
+        return {
+            "generation": answer,  # Use LangGraph expected key
+            "source_documents": documents,
+            "documents": documents,
+            "question": question,
+            "chat_history": chat_history,
+            "user_phone": user_profile.get("phone", ""),
+            "user_name": user_profile.get("name", ""),
+            "user_profile": user_profile,
+            "detected_location": detected_location,
+            "lead_created": None,
+            "conversation_logged": True
+        }
+    
+    def _generate_answer_from_documents(self, question: str, documents: list, location_code: str = "") -> str:
+        """Generate answer from documents without personalization"""
+        if not documents:
+            return "I apologize, but I don't have specific information about that. Please let me know if there's anything else about Leo & Loona I can help you with!"
+        
+        # Create context from documents
+        context = "\n\n".join([doc.page_content for doc in documents])
+        print(f"🔍 Context length: {len(context)} chars from {len(documents)} documents")
+        
+        # Convert location code to proper mall name
+        location_name = {
+            "YAS_MALL": "Yas Mall",
+            "DALMA_MALL": "Dalma Mall", 
+            "FESTIVAL_CITY": "Festival City"
+        }.get(location_code, location_code)
+        
+        # Add mall-specific context if needed
+        mall_context = ""
+        if location_name and location_name != "General":
+            mall_context = f"\nIMPORTANT: This question is specifically about {location_name}. Focus on information relevant to this location."
+        
+        datetime_context = self._format_datetime_context()
+        
+        # Enhanced prompt for better opening hours handling
+        opening_hours_hint = ""
+        if "opening" in question.lower() or "hours" in question.lower() or "time" in question.lower():
+            opening_hours_hint = f"\nSPECIAL NOTE: The user is asking about opening hours/times. Look for operating hours, schedule information, and time-related details in the context. If you find opening hours information, present it clearly with days and times."
+        
+        prompt = f"""You are a warm, friendly, and knowledgeable virtual host of Leo & Loona magical family amusement park.
+
+{datetime_context}
+
+Context information:
+{context}
+{mall_context}
+{opening_hours_hint}
+
+Question: {question}
+
+INSTRUCTIONS:
+- Answer based ONLY on the provided context
+- Be warm and helpful while sticking to facts
+- If the context contains opening hours, present them clearly
+- If location-specific information is available, use it
+- Don't make up information not in the context
+
+Answer:"""
+        
+        try:
+            from langchain_core.messages import HumanMessage
+            response = self.llm.invoke([HumanMessage(content=prompt)])
+            return response.content
+        except Exception as e:
+            print(f"❌ Error generating answer from documents: {e}")
+            return "I'm having trouble accessing that information right now. Please try asking again or contact our team directly!"

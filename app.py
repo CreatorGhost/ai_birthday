@@ -316,15 +316,30 @@ def main():
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
                     # Show typing indicator and use enhanced pipeline with manual phone and mall selection
-                    result = st.session_state.rag_pipeline.answer_question(
-                        prompt, 
-                        chat_history=st.session_state.messages[:-1],  # Exclude current message
-                        manual_phone=st.session_state.user_info.get('phone'),  # Pass manual phone
-                        manual_mall=manual_park if manual_park != "General" else None  # Pass manual mall selection
-                    )
-                    
-                    response = result["answer"]
-                    st.markdown(response)
+                    try:
+                        result = st.session_state.rag_pipeline.answer_question(
+                            prompt, 
+                            chat_history=st.session_state.messages[:-1],  # Exclude current message
+                            manual_phone=st.session_state.user_info.get('phone'),  # Pass manual phone
+                            manual_mall=manual_park if manual_park != "General" else None  # Pass manual mall selection
+                        )
+                        
+                        print(f"🌟 Streamlit received result: {type(result)}")
+                        print(f"🌟 Result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
+                        print(f"🌟 Answer length: {len(result.get('answer', '')) if isinstance(result, dict) else 'No answer key'}")
+                        
+                        response = result["answer"]
+                        print(f"🌟 About to display response: {response[:100]}...")
+                        st.markdown(response)
+                        print(f"🌟 Response displayed successfully")
+                        
+                    except Exception as e:
+                        print(f"❌ Streamlit error: {e}")
+                        import traceback
+                        print(f"❌ Traceback: {traceback.format_exc()}")
+                        st.error(f"Error: {e}")
+                        response = f"I apologize, but I encountered an error: {str(e)}"
+                        result = {"user_info": {}, "lead_created": None}  # Safe fallback
                     
                     # Update user information from RAG pipeline result (NEW)
                     if 'user_info' in result:

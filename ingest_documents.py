@@ -738,6 +738,176 @@ class DocumentIngestor:
             self._print("4. Check Pinecone API key permissions")
             return False
     
+    def ingest_location_specific_files(self) -> bool:
+        """Ingest location-specific markdown files with proper metadata"""
+        self._print("🦁 Leo & Loona Location-Specific Files Ingestion")
+        self._print("=" * 60)
+        
+        start_time = time.time()
+        
+        # Step 1: Check environment
+        if not self.check_environment():
+            self._print("\n❌ Environment check failed. Please check your .env file.")
+            return False
+        
+        # Step 2: Define location-specific files with their metadata
+        location_files = [
+            {
+                "file_path": "./rag_ready_faq/yas_mall_specific.md",
+                "location": "YAS_MALL",
+                "source": "yas_mall_faq",
+                "description": "Yas Mall specific information"
+            },
+            {
+                "file_path": "./rag_ready_faq/dalma_mall_specific.md", 
+                "location": "DALMA_MALL",
+                "source": "dalma_mall_faq",
+                "description": "Dalma Mall specific information"
+            },
+            {
+                "file_path": "./rag_ready_faq/festival_city_specific.md",
+                "location": "FESTIVAL_CITY", 
+                "source": "festival_city_faq",
+                "description": "Festival City specific information"
+            },
+            {
+                "file_path": "./rag_ready_faq/general_faq.md",
+                "location": "GENERAL",
+                "source": "general_faq", 
+                "description": "General non-location-specific information"
+            }
+        ]
+        
+        # Step 3: Check if all files exist
+        missing_files = []
+        existing_files = []
+        
+        for file_info in location_files:
+            file_path = file_info["file_path"]
+            if os.path.exists(file_path):
+                file_size = Path(file_path).stat().st_size
+                self._print(f"✅ Found {file_info['description']}: {Path(file_path).name} ({file_size:,} bytes)")
+                existing_files.append(file_info)
+            else:
+                self._print(f"❌ Missing {file_info['description']}: {file_path}")
+                missing_files.append(file_path)
+        
+        if missing_files:
+            self._print(f"\n❌ Missing {len(missing_files)} required files. Please ensure all location-specific files exist.")
+            return False
+        
+        if not existing_files:
+            self._print("\n❌ No location-specific files found.")
+            return False
+        
+        try:
+            # Step 4: Load all location-specific files
+            self._print(f"\n📋 Loading {len(existing_files)} location-specific files...")
+            
+            documents = []
+            total_chars = 0
+            
+            for file_info in existing_files:
+                file_path = file_info["file_path"]
+                
+                # Read file content
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Create document with proper location metadata
+                document = Document(
+                    page_content=content,
+                    metadata={
+                        'filename': Path(file_path).name,
+                        'file_path': file_path,
+                        'source': file_info["source"],
+                        'location': file_info["location"],  # 🎯 CRITICAL: Location metadata for filtering
+                        'document_type': 'location_specific_faq',
+                        'content_length': len(content),
+                        'description': file_info["description"]
+                    }
+                )
+                
+                documents.append(document)
+                total_chars += len(content)
+                
+                self._print(f"   ✅ Loaded {file_info['description']}: {len(content):,} chars")
+            
+            self._print(f"✅ Loaded {len(documents)} location-specific documents")
+            self._print(f"📊 Total content: {total_chars:,} characters")
+            
+            # Step 5: Split documents
+            split_docs = self.split_documents(documents)
+            
+            # Step 6: Setup RAG pipeline
+            if not self.setup_rag_pipeline():
+                return False
+            
+            # Step 7: Create embeddings
+            if not self.create_embeddings(split_docs):
+                return False
+            
+            # Step 8: Test ingestion with location-specific queries
+            self._print("\n🧪 Testing location-specific ingestion...")
+            
+            # Location-specific test questions
+            location_test_questions = [
+                "What are the opening hours for Yas Mall?",
+                "Tell me about Dalma Mall pricing",
+                "Where is Festival City located?",
+                "What are the general rules and regulations?"
+            ]
+            
+            self.rag_pipeline.setup_graph()
+            
+            for i, question in enumerate(location_test_questions, 1):
+                self._print(f"\n   Test {i}: {question}")
+                result = self.rag_pipeline.answer_question(question)
+                
+                response_preview = result['answer'][:100] + "..." if len(result['answer']) > 100 else result['answer']
+                self._print(f"   Response: {response_preview}")
+                
+                doc_count = len(result.get('source_documents', []))
+                self._print(f"   Sources: {doc_count} document(s)")
+                
+                # Show which locations were found in source documents
+                if result.get('source_documents'):
+                    locations_found = set()
+                    for doc in result['source_documents']:
+                        location = doc.metadata.get('location', 'UNKNOWN')
+                        locations_found.add(location)
+                    self._print(f"   Locations: {', '.join(sorted(locations_found))}")
+            
+            # Final summary
+            total_time = time.time() - start_time
+            
+            # Count documents by location
+            location_counts = {}
+            for doc in documents:
+                location = doc.metadata.get('location', 'UNKNOWN')
+                location_counts[location] = location_counts.get(location, 0) + 1
+            
+            self._print(f"\n🎉 LOCATION-SPECIFIC INGESTION COMPLETE!")
+            self._print("=" * 60)
+            self._print(f"📊 Summary:")
+            self._print(f"   • Total files processed: {len(documents)}")
+            for location, count in location_counts.items():
+                self._print(f"     - {location}: {count} file(s)")
+            self._print(f"   • Chunks created: {len(split_docs)}")
+            self._print(f"   • Chunk size: {self.chunk_size}")
+            self._print(f"   • Chunk overlap: {self.chunk_overlap}")
+            self._print(f"   • Total time: {total_time:.1f} seconds")
+            
+            self._print(f"\n✅ Your location-specific FAQ system is ready!")
+            self._print(f"🎯 Mall-specific filtering is now properly configured!")
+            self._print(f"🚀 Run: streamlit run app.py")
+            
+            return True
+            
+        except Exception as e:
+            self._print(f"\n❌ Error during location-specific ingestion: {str(e)}")
+            return False
+    
     def auto_ingest(self) -> bool:
         """
         Automatically choose best ingestion method based on available files or force specific method
@@ -778,8 +948,12 @@ class DocumentIngestor:
                 self._print("📄 Using forced DOCX ingestion.")
                 return self.ingest_docx_documents()
                 
+            elif method == 'location-specific':
+                self._print("🎯 Using forced location-specific ingestion.")
+                return self.ingest_location_specific_files()
+                
             else:
-                self._print(f"❌ Invalid force_method: {method}. Valid options: json, excel, markdown, docx")
+                self._print(f"❌ Invalid force_method: {method}. Valid options: json, excel, markdown, docx, location-specific")
                 return False
         
         # Auto-selection based on available files (original logic)
@@ -807,7 +981,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Leo & Loona FAQ + Infrastructure Document Ingestion')
-    parser.add_argument('--method', choices=['json', 'excel', 'markdown', 'docx'], 
+    parser.add_argument('--method', choices=['json', 'excel', 'markdown', 'docx', 'location-specific'], 
                        help='Force specific ingestion method (default: auto-detect)')
     parser.add_argument('--chunk-size', type=int, default=2800,
                        help='Chunk size for document splitting (default: 2800)')

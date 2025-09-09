@@ -280,7 +280,6 @@ class LeadManager:
                         "content": f"Is this message asking about birthdays/parties/celebrations? Message: '{content}'"
                     }
                 ],
-                temperature=0,
                 max_completion_tokens=10
             )
             

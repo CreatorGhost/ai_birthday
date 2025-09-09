@@ -15,6 +15,9 @@ class UserTracker:
         self.conversations_file = os.path.join(storage_dir, "user_conversations.txt")
         self.profiles_file = os.path.join(storage_dir, "user_profiles.txt")
         
+        # 🔥 LANGGRAPH BEST PRACTICE: Session-based message history
+        self.session_messages = {}  # In-memory storage for session messages
+        
         # Create storage directory if it doesn't exist
         os.makedirs(storage_dir, exist_ok=True)
         
@@ -51,7 +54,7 @@ class UserTracker:
             return self.generate_test_phone_number()
     
     def extract_name_from_message(self, message: str, conversation_context: List[Dict] = None) -> Dict:
-        """Use LLM to extract user name from message"""
+        """Enhanced LLM-based name extraction with better typo handling"""
         
         # Check if this might be a response to a name request
         recent_bot_messages = []
@@ -59,22 +62,24 @@ class UserTracker:
             recent_bot_messages = [msg.get('content', '') for msg in conversation_context[-3:] 
                                  if msg.get('role') == 'assistant']
         
-        prompt = PromptTemplate(
-            template="""You are extracting user names from chat messages. Look for clear name indicators.
+        recent_context = " | ".join(recent_bot_messages[-2:]) if recent_bot_messages else "None"
+        
+        prompt = f"""Extract user name from this message. Handle typos, cultural names, and variations.
 
-Recent bot messages: {recent_messages}
+RECENT BOT MESSAGES: {recent_context}
+USER MESSAGE: "{message}"
 
-User message: "{message}"
+EXTRACT NAME from patterns like:
+- "I'm John" / "I am Sarah" / "My name is Mike"
+- "Call me Lisa" / "It's David" / "Hi, I'm..."
+- Just a name in response to name questions
+- Cultural names (Arabic, Indian, etc.)
+- Names with typos or unusual spellings
+- Combined messages like "I'm Ahmed, ys mall hours?"
 
-Extract the name if the user is clearly providing their name. Look for patterns like:
-- "I'm John" / "I am Sarah"
-- "My name is Mike"
-- "Call me Lisa"
-- "It's David"
-- Just a name in response to a name question
-- "Hi, I'm..." or "Hello, I'm..."
+IMPORTANT: Only extract if user is clearly providing their name, not mentioning someone else.
 
-Respond with JSON:
+Return ONLY valid JSON:
 {{
     "name_found": true/false,
     "extracted_name": "name or null",
@@ -82,31 +87,72 @@ Respond with JSON:
     "reasoning": "brief explanation"
 }}
 
-Only extract if you're confident (>0.7) that the user is providing their name.""",
-            input_variables=["message", "recent_messages"]
-        )
-        
-        recent_context = " | ".join(recent_bot_messages[-2:]) if recent_bot_messages else "None"
-        
+EXAMPLES:
+- "I'm Ahmed" → {{"name_found": true, "extracted_name": "Ahmed", "confidence": 0.9, "reasoning": "Clear name introduction"}}
+- "My daughter Sarah wants to know" → {{"name_found": false, "extracted_name": null, "confidence": 0.0, "reasoning": "Referring to someone else"}}
+- "Call me Mike please" → {{"name_found": true, "extracted_name": "Mike", "confidence": 0.8, "reasoning": "Clear name request"}}
+
+Only extract if confidence > 0.7 that user is providing THEIR OWN name."""
+
         try:
-            chain = prompt | self.llm | StrOutputParser()
-            response = chain.invoke({
-                "message": message,
-                "recent_messages": recent_context
-            })
+            from langchain_core.messages import HumanMessage
+            from langchain_core.output_parsers import StrOutputParser
             
-            # Parse JSON response
+            # Use JSON mode LLM if available
+            llm_to_use = getattr(self, 'llm_json_mode', self.llm)
+            
+            response = llm_to_use.invoke([HumanMessage(content=prompt)])
+            response_text = response.content.strip()
+            
+            # Parse JSON response with better error handling
+            import json
             import re
-            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            
+            # Try to find JSON in response
+            json_match = re.search(r'\{[^{}]*\}', response_text)
             if json_match:
                 result = json.loads(json_match.group())
-                return result
+                
+                # Validate and clean response
+                name_found = result.get("name_found", False)
+                extracted_name = result.get("extracted_name")
+                confidence = result.get("confidence", 0.0)
+                reasoning = result.get("reasoning", "LLM extraction")
+                
+                # Clean extracted name
+                if extracted_name and isinstance(extracted_name, str):
+                    extracted_name = extracted_name.strip().title()
+                    if extracted_name.lower() in ['null', 'none', '']:
+                        extracted_name = None
+                        name_found = False
+                else:
+                    extracted_name = None
+                    name_found = False
+                
+                return {
+                    "name_found": name_found,
+                    "extracted_name": extracted_name,
+                    "confidence": float(confidence),
+                    "reasoning": reasoning
+                }
+            
             else:
-                return {"name_found": False, "extracted_name": None, "confidence": 0.0, "reasoning": "Could not parse response"}
+                print(f"⚠️ Name extraction: No JSON found in response: {response_text}")
+                return {
+                    "name_found": False,
+                    "extracted_name": None,
+                    "confidence": 0.0,
+                    "reasoning": "LLM extraction failed - no JSON found"
+                }
                 
         except Exception as e:
-            print(f"Error extracting name: {e}")
-            return {"name_found": False, "extracted_name": None, "confidence": 0.0, "reasoning": f"Error: {str(e)}"}
+            print(f"❌ Name extraction error: {str(e)}")
+            return {
+                "name_found": False,
+                "extracted_name": None,
+                "confidence": 0.0,
+                "reasoning": f"LLM extraction error: {str(e)}"
+            }
     
     def should_request_name(self, conversation_history: List[Dict], current_message: str, user_profile: Dict) -> Dict:
         """Determine if and how to request user's name"""
@@ -301,30 +347,84 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
             print(f"Error analyzing conversation category: {e}")
             return {"category": "general", "confidence": 0.5, "reasoning": f"Error: {str(e)}", "keywords_found": []}
     
-    def store_original_question(self, phone: str, question: str):
-        """Store the original question until name is provided"""
+    def store_original_question(self, phone: str, question: str, detected_mall: str = None):
+        """Store the original question and detected mall until name is provided"""
         try:
-            # Store in a simple format for now
+            # Store question and mall information in JSON format
+            import json
             filename = f'user_data/pending_question_{phone.replace("+", "").replace(" ", "")}.txt'
+            
+            import datetime
+            question_data = {
+                "question": question,
+                "detected_mall": detected_mall,
+                "timestamp": datetime.datetime.now().isoformat()
+            }
+            
             with open(filename, 'w') as f:
-                f.write(question)
+                json.dump(question_data, f)
 
         except Exception as e:
             print(f"Error storing original question: {e}")
     
     def get_stored_question(self, phone: str) -> str:
-        """Retrieve the stored original question"""
+        """Retrieve the stored original question (non-destructive read)"""
         try:
             filename = f'user_data/pending_question_{phone.replace("+", "").replace(" ", "")}.txt'
             if os.path.exists(filename):
                 with open(filename, 'r') as f:
-                    question = f.read().strip()
-                # Clean up the file after reading
-                os.remove(filename)
-                return question
+                    content = f.read().strip()
+                    
+                # Try to parse as JSON (new format)
+                try:
+                    import json
+                    question_data = json.loads(content)
+                    return question_data.get("question", "")
+                except json.JSONDecodeError:
+                    # Fallback for old format (plain text)
+                    return content
         except Exception as e:
             print(f"Error retrieving stored question: {e}")
         return ""
+    
+    def get_stored_question_info(self, phone: str) -> dict:
+        """Retrieve the full stored question information including detected mall"""
+        try:
+            filename = f'user_data/pending_question_{phone.replace("+", "").replace(" ", "")}.txt'
+            if os.path.exists(filename):
+                with open(filename, 'r') as f:
+                    content = f.read().strip()
+                    
+                # Try to parse as JSON (new format)
+                try:
+                    import json
+                    return json.loads(content)
+                except json.JSONDecodeError:
+                    # Fallback for old format (plain text)
+                    return {"question": content, "detected_mall": None}
+            return {}
+        except Exception as e:
+            print(f"Error retrieving stored question info: {e}")
+            return {}
+    
+    def clear_stored_question(self, phone: str):
+        """Clear the stored question after it has been answered"""
+        try:
+            filename = f'user_data/pending_question_{phone.replace("+", "").replace(" ", "")}.txt'
+            if os.path.exists(filename):
+                os.remove(filename)
+                print(f"✅ Cleared stored question for {phone}")
+        except Exception as e:
+            print(f"Error clearing stored question: {e}")
+    
+    def has_stored_question(self, phone: str) -> bool:
+        """Check if there's a stored question without reading it"""
+        try:
+            filename = f'user_data/pending_question_{phone.replace("+", "").replace(" ", "")}.txt'
+            return os.path.exists(filename)
+        except Exception as e:
+            print(f"Error checking stored question: {e}")
+            return False
     
     def is_first_interaction(self, conversation_history: List[Dict]) -> bool:
         """Check if this is the very first interaction"""
@@ -387,7 +487,9 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                         "lead_created_at": None,
                         "lead_updated_at": None,
                         "original_park_location": None,
-                        "current_park_location": None
+                        "current_park_location": None,
+                        "name_refusal_count": 0,
+                        "greeted": False
                     }
                     
                     for part in parts:
@@ -411,6 +513,12 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                         elif part.startswith("Current_Park: "):
                             park = part.replace("Current_Park: ", "").strip()
                             profile["current_park_location"] = park if park != "None" else None
+                        elif part.startswith("Name_Refusal_Count: "):
+                            count = part.replace("Name_Refusal_Count: ", "").strip()
+                            profile["name_refusal_count"] = int(count) if count.isdigit() else 0
+                        elif part.startswith("Greeted: "):
+                            greeted = part.replace("Greeted: ", "").strip()
+                            profile["greeted"] = greeted.lower() == "true"
                     
                     return profile
             
@@ -424,14 +532,71 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                 "lead_created_at": None,
                 "lead_updated_at": None,
                 "original_park_location": None,  # Track the first park they were assigned to
-                "current_park_location": None    # Track current park (can be updated)
+                "current_park_location": None,    # Track current park (can be updated)
+                "name_refusal_count": 0,
+                "greeted": False
             }
             
         except Exception as e:
             print(f"Error reading user profile: {e}")
             return {"phone": phone, "name": None, "last_seen": None, "total_messages": 0}
     
-    def update_user_profile(self, phone: str, name: Optional[str] = None):
+    def increment_name_refusal_count(self, phone: str) -> int:
+        """Increment name refusal count and return current count"""
+        profile = self.get_user_profile(phone)
+        current_count = profile.get("name_refusal_count", 0)
+        new_count = current_count + 1
+        
+        # Update profile with new refusal count
+        self.update_user_profile(phone, name_refusal_count=new_count)
+        return new_count
+    
+    def get_name_refusal_count(self, phone: str) -> int:
+        """Get current name refusal count for user"""
+        profile = self.get_user_profile(phone)
+        return profile.get("name_refusal_count", 0)
+    
+    def reset_name_refusal_count(self, phone: str):
+        """Reset name refusal count (when user finally provides name)"""
+        self.update_user_profile(phone, name_refusal_count=0)
+    
+    # 🔥 LANGGRAPH BEST PRACTICE: Session-based message history management
+    def add_user_message(self, session_id: str, message: str):
+        """Add a user message to the session history"""
+        if session_id not in self.session_messages:
+            self.session_messages[session_id] = []
+        
+        self.session_messages[session_id].append({
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    def add_ai_message(self, session_id: str, message: str):
+        """Add an AI message to the session history"""
+        if session_id not in self.session_messages:
+            self.session_messages[session_id] = []
+        
+        self.session_messages[session_id].append({
+            "role": "assistant",
+            "content": message,
+            "timestamp": datetime.now().isoformat()
+        })
+    
+    def get_session_history(self, session_id: str, last_n: int = 10) -> List[dict]:
+        """Get the message history for a session"""
+        if session_id not in self.session_messages:
+            return []
+        
+        # Return the last N messages
+        return self.session_messages[session_id][-last_n:] if last_n else self.session_messages[session_id]
+    
+    def clear_session_history(self, session_id: str):
+        """Clear the message history for a session"""
+        if session_id in self.session_messages:
+            del self.session_messages[session_id]
+
+    def update_user_profile(self, phone: str, name: Optional[str] = None, name_refusal_count: Optional[int] = None, greeted: Optional[bool] = None):
         """Update user profile with new information"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -454,8 +619,12 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
                         current_profile["total_messages"] += 1
                         if name:
                             current_profile["name"] = name
+                        if name_refusal_count is not None:
+                            current_profile["name_refusal_count"] = name_refusal_count
+                        if greeted is not None:
+                            current_profile["greeted"] = greeted
                         
-                        profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: {current_profile['total_messages']} | Lead_ID: {current_profile.get('bitrix_lead_id', 'None')} | Lead_Created: {current_profile.get('lead_created_at', 'None')} | Lead_Updated: {current_profile.get('lead_updated_at', 'None')} | Original_Park: {current_profile.get('original_park_location', 'None')} | Current_Park: {current_profile.get('current_park_location', 'None')}\n"
+                        profile_line = f"Phone: {phone} | Name: {current_profile['name'] or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: {current_profile['total_messages']} | Lead_ID: {current_profile.get('bitrix_lead_id', 'None')} | Lead_Created: {current_profile.get('lead_created_at', 'None')} | Lead_Updated: {current_profile.get('lead_updated_at', 'None')} | Original_Park: {current_profile.get('original_park_location', 'None')} | Current_Park: {current_profile.get('current_park_location', 'None')} | Name_Refusal_Count: {current_profile.get('name_refusal_count', 0)} | Greeted: {current_profile.get('greeted', False)}\n"
                         profiles.append(profile_line)
                     else:
                         profiles.append(line)
@@ -463,7 +632,7 @@ Only choose "birthday_party" if clearly related to birthday celebrations."""
             # If user not found, add new profile
             user_found = any(f"Phone: {phone}" in line for line in profiles if not line.startswith('#'))
             if not user_found:
-                profile_line = f"Phone: {phone} | Name: {name or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: 1 | Lead_ID: None | Lead_Created: None | Lead_Updated: None | Original_Park: None | Current_Park: None\n"
+                profile_line = f"Phone: {phone} | Name: {name or 'Unknown'} | Last_Seen: {timestamp} | Total_Messages: 1 | Lead_ID: None | Lead_Created: None | Lead_Updated: None | Original_Park: None | Current_Park: None | Name_Refusal_Count: {name_refusal_count or 0} | Greeted: {greeted or False}\n"
                 profiles.append(profile_line)
             
             # Write back to file
