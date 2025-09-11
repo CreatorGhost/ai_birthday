@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp Lead Flow Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+      }
+
+      .test-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 2px solid #ecf0f1;
+        border-radius: 8px;
+      }
+
+      .test-section h3 {
+        color: #34495e;
+        margin-top: 0;
+      }
+
+      .phone-input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+
+      .chat-container {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        height: 300px;
+        overflow-y: auto;
+        padding: 10px;
+        background-color: #fafafa;
+        margin: 10px 0;
+      }
+
+      .message {
+        margin: 10px 0;
+        padding: 8px 12px;
+        border-radius: 15px;
+        max-width: 70%;
+      }
+
+      .user-message {
+        background-color: #007bff;
+        color: white;
+        margin-left: auto;
+        text-align: right;
+      }
+
+      .bot-message {
+        background-color: #e9ecef;
+        color: #333;
+      }
+
+      .message-input {
+        width: calc(100% - 80px);
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      .send-btn {
+        width: 70px;
+        padding: 10px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-left: 5px;
+      }
+
+      .send-btn:hover {
+        background-color: #218838;
+      }
+
+      .generate-btn {
+        background-color: #17a2b8;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-left: 10px;
+      }
+
+      .generate-btn:hover {
+        background-color: #138496;
+      }
+
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+
+      .status.connected {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status.disconnected {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .flow-info {
+        background-color: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+
+      .flow-step {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🎂 WhatsApp Lead Flow Tester</h1>
+        <p>Test the complete WhatsApp lead creation and progression flow</p>
+      </div>
+
+      <div class="flow-info">
+        <h4>🎯 Expected WhatsApp Lead Flow:</h4>
+        <div class="flow-step">
+          📱 <strong>Message 1:</strong> Create lead ("Unknown User" → AI Bot →
+          Inquiry)
+        </div>
+        <div class="flow-step">
+          📝 <strong>Name detected:</strong> Update title → "💬 Mall - General
+          Inquiry (Name)" → General Questions
+        </div>
+        <div class="flow-step">
+          🏢 <strong>Mall detected:</strong> Update mall fields (keep AI Bot
+          assignment)
+        </div>
+        <div class="flow-step">
+          🎂 <strong>Birthday keywords:</strong> Convert → "🎂 Mall - Birthday
+          Party (Name)" → Sales Team → New Approach
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h3>🧪 Test Session</h3>
+
+        <label for="phoneInput">Phone Number:</label>
+        <input
+          type="text"
+          id="phoneInput"
+          class="phone-input"
+          placeholder="+971551234567"
+          value="+971551234567"
+        />
+        <button class="generate-btn" onclick="generateRandomPhone()">
+          🎲 Generate Random
+        </button>
+
+        <div id="connectionStatus" class="status disconnected">
+          Disconnected
+        </div>
+
+        <div id="chatContainer" class="chat-container"></div>
+
+        <div style="display: flex; align-items: center">
+          <input
+            type="text"
+            id="messageInput"
+            class="message-input"
+            placeholder="Type your message..."
+            onkeypress="handleKeyPress(event)"
+          />
+          <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+
+        <div style="margin-top: 15px">
+          <h4>🧪 Test Scenarios:</h4>
+          <button
+            class="generate-btn"
+            onclick="sendTestMessage('can you tell me about festival mall opening hours')"
+          >
+            🏢 Mall Question
+          </button>
+          <button
+            class="generate-btn"
+            onclick="sendTestMessage('My name is John Smith')"
+          >
+            📝 Provide Name
+          </button>
+          <button
+            class="generate-btn"
+            onclick="sendTestMessage('Do you do birthday parties?')"
+          >
+            🎂 Birthday Question
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let ws = null;
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 5;
+
+      function generateRandomPhone() {
+        const randomNumber = Math.floor(Math.random() * 900000000) + 100000000;
+        document.getElementById("phoneInput").value = `+971${randomNumber}`;
+      }
+
+      function connect() {
+        const phone = document.getElementById("phoneInput").value.trim();
+        if (!phone) {
+          alert("Please enter a phone number");
+          return;
+        }
+
+        if (ws) {
+          ws.close();
+        }
+
+        try {
+          // Connect to WebSocket server
+          ws = new WebSocket(
+            `ws://localhost:8001/ws/${encodeURIComponent(phone)}`
+          );
+
+          ws.onopen = () => {
+            console.log("WebSocket connected");
+            document.getElementById(
+              "connectionStatus"
+            ).textContent = `Connected as ${phone}`;
+            document.getElementById("connectionStatus").className =
+              "status connected";
+            reconnectAttempts = 0;
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === "message") {
+                addMessage(data.content, false);
+              } else if (data.type === "error") {
+                addMessage(`Error: ${data.content}`, false, true);
+              }
+            } catch (e) {
+              console.error("Error parsing message:", e);
+              addMessage("Error parsing server response", false, true);
+            }
+          };
+
+          ws.onclose = () => {
+            console.log("WebSocket disconnected");
+            document.getElementById("connectionStatus").textContent =
+              "Disconnected";
+            document.getElementById("connectionStatus").className =
+              "status disconnected";
+
+            // Attempt to reconnect
+            if (reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              console.log(
+                `Attempting to reconnect... (${reconnectAttempts}/${maxReconnectAttempts})`
+              );
+              setTimeout(connect, 2000);
+            }
+          };
+
+          ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+            addMessage("Connection error", false, true);
+          };
+        } catch (error) {
+          console.error("Connection error:", error);
+          addMessage("Failed to connect", false, true);
+        }
+      }
+
+      function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const message = messageInput.value.trim();
+
+        if (!message) return;
+
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          connect();
+          setTimeout(() => sendMessage(), 1000);
+          return;
+        }
+
+        // Add user message to chat
+        addMessage(message, true);
+
+        // Send to server
+        ws.send(
+          JSON.stringify({
+            type: "message",
+            content: message,
+          })
+        );
+
+        // Clear input
+        messageInput.value = "";
+      }
+
+      function sendTestMessage(message) {
+        document.getElementById("messageInput").value = message;
+        sendMessage();
+      }
+
+      function addMessage(content, isUser, isError = false) {
+        const chatContainer = document.getElementById("chatContainer");
+        const messageDiv = document.createElement("div");
+
+        messageDiv.className = `message ${
+          isUser ? "user-message" : "bot-message"
+        }`;
+        if (isError) {
+          messageDiv.style.backgroundColor = "#f8d7da";
+          messageDiv.style.color = "#721c24";
+        }
+
+        messageDiv.textContent = content;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      }
+
+      // Auto-connect on page load
+      window.onload = () => {
+        generateRandomPhone();
+        connect();
+      };
+    </script>
+  </body>
+</html>
