@@ -37,15 +37,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Create FAQ directory if it doesn't exist
-RUN mkdir -p FAQ
+# Create necessary directories
+RUN mkdir -p FAQ \
+    && mkdir -p logs \
+    && mkdir -p user_data \
+    && mkdir -p vector_store
 
-# Expose port for Streamlit
-EXPOSE 8501
+# Expose port for WhatsApp Backend (includes WebSocket and HTML UI)
+EXPOSE 8001
 
-# Health check
+# Health check for WhatsApp Backend
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+    CMD curl -f http://localhost:8001/health || exit 1
 
-# Default command to run Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true", "--server.fileWatcherType=none", "--browser.gatherUsageStats=false"]
+# Default command to run WhatsApp Backend
+CMD ["python", "start_whatsapp_backend.py", "--port", "8001", "--host", "0.0.0.0"]

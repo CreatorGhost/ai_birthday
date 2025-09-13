@@ -2205,3 +2205,1084 @@ If you’d like to see the menu or reserve a table, here are some helpful contac
 - WhatsApp: +971 501754133
 
 We can’t wait to welcome you to Leo & Loona — let me know if you’d like help with a reservation or anything else! 🎈
+[2025-09-11 21:57:48] | Phone: +971775342446 | Name: Unknown | USER: can we get socks
+[2025-09-11 21:57:51] | Phone: +971775342446 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-12 20:14:39] | Phone: +971355819800 | Name: Unknown | USER: My name is John Smith
+[2025-09-12 20:14:42] | Phone: +971355819800 | Name: John Smith | BOT: Thank you, John Smith! 😊
+
+I still need to know which location you're interested in:
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Which location would you prefer? ✨
+[2025-09-12 20:14:42] | Phone: +971355819800 | Name: John Smith | BOT: Thank you, John Smith! 😊
+
+I still need to know which location you're interested in:
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Which location would you prefer? ✨
+[2025-09-12 20:14:43] | Phone: +971123456789 | Name: Unknown | USER: Hello, test message!
+[2025-09-12 20:14:46] | Phone: +971123456789 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-12 20:14:49] | Phone: +971355819800 | Name: John Smith | USER: ys mall
+[2025-09-12 20:14:58] | Phone: +971355819800 | Name: John Smith | USER: ys mall
+[2025-09-12 20:15:07] | Phone: +971123456789 | Name: Unknown | USER: Test webhook message
+[2025-09-12 20:15:16] | Phone: +971123456789 | Name: Unknown | USER: Test webhook message
+[2025-09-12 20:15:22] | Phone: +971355819800 | Name: John Smith | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "ys mall" accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-12 20:15:22] | Phone: +971355819800 | Name: John Smith | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "ys mall" accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-12 20:15:27] | Phone: +971123456789 | Name: Unknown | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "Test webhook message" accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-12 20:15:27] | Phone: +971123456789 | Name: Unknown | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "Test webhook message" accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-12 20:16:41] | Phone: +971561744463 | Name: Unknown | USER: hey can you tell me about contact info
+[2025-09-12 20:16:44] | Phone: +971561744463 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-12 20:16:49] | Phone: +971561744463 | Name: Unknown | USER: leo ys mall
+[2025-09-12 20:17:57] | Phone: +971561744463 | Name: Leo | BOT: Thank you, Leo! 😊
+
+Lovely — I’m happy to share the contact details for Leo & Loona at Yas Mall and a few quick key points so you have everything at a glance.
+
+Contact & Online
+- Landline: 04 2375454  
+- WhatsApp: +971 50 175 4133  
+- Email: info.ll@leoloona.ae  
+- Website / Park page: https://leoloona.ae/yasmall/  
+- Online booking: https://booking.leoloona.ae/  
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Instagram: @leo.loona  
+- YouTube: www.youtube.com/@LeoLoona
+
+Location & Hours
+- Location: Yas Mall, 1st floor (beside Five Guys) — nearest parking: Hypermarket Parking  
+- Opening hours: Sun–Thu 10:00–23:00 | Fri–Sat 10:00–24:00 (holidays follow mall hours)
+
+Quick Pricing & Practical Notes
+- Weekdays: 2‑hour pass 159 AED / Full‑day 199 AED (upgrade +50 AED)  
+- Weekends: Full‑day 249 AED  
+- Socks: 5 AED (kids) / 8 AED (adults) — socks required in play areas  
+- Discounts: 50% off the Unlimited Day Pass for children under 1 (with proof) and People of Determination (with valid ID). Adults enter free.  
+- Booking: online booking available; tickets are non-transferable and non-refundable.  
+- Important rules: no outside food/drinks (only in dining areas), no-touch policy for interactive equipment, wristbands must be worn in activity areas, lockers may be available.
+
+Safety & Support
+- First aid staffed, CCTV for safety, partial wheelchair access. Management reserves the right to refuse/remove guests for safety/behavioral concerns.  
+- For birthday or event bookings, our Sales team will assist — they’ll ask for date, estimated time, guest count and preferred contact method.
+
+By the way — we often run special projects and seasonal promotions at the park. If you’re planning a visit soon, would you like me to send today’s schedule, current promotions, or help with an online booking or reservation?
+[2025-09-12 20:17:57] | Phone: +971561744463 | Name: Leo | BOT: Thank you, Leo! 😊
+
+Lovely — I’m happy to share the contact details for Leo & Loona at Yas Mall and a few quick key points so you have everything at a glance.
+
+Contact & Online
+- Landline: 04 2375454  
+- WhatsApp: +971 50 175 4133  
+- Email: info.ll@leoloona.ae  
+- Website / Park page: https://leoloona.ae/yasmall/  
+- Online booking: https://booking.leoloona.ae/  
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Instagram: @leo.loona  
+- YouTube: www.youtube.com/@LeoLoona
+
+Location & Hours
+- Location: Yas Mall, 1st floor (beside Five Guys) — nearest parking: Hypermarket Parking  
+- Opening hours: Sun–Thu 10:00–23:00 | Fri–Sat 10:00–24:00 (holidays follow mall hours)
+
+Quick Pricing & Practical Notes
+- Weekdays: 2‑hour pass 159 AED / Full‑day 199 AED (upgrade +50 AED)  
+- Weekends: Full‑day 249 AED  
+- Socks: 5 AED (kids) / 8 AED (adults) — socks required in play areas  
+- Discounts: 50% off the Unlimited Day Pass for children under 1 (with proof) and People of Determination (with valid ID). Adults enter free.  
+- Booking: online booking available; tickets are non-transferable and non-refundable.  
+- Important rules: no outside food/drinks (only in dining areas), no-touch policy for interactive equipment, wristbands must be worn in activity areas, lockers may be available.
+
+Safety & Support
+- First aid staffed, CCTV for safety, partial wheelchair access. Management reserves the right to refuse/remove guests for safety/behavioral concerns.  
+- For birthday or event bookings, our Sales team will assist — they’ll ask for date, estimated time, guest count and preferred contact method.
+
+By the way — we often run special projects and seasonal promotions at the park. If you’re planning a visit soon, would you like me to send today’s schedule, current promotions, or help with an online booking or reservation?
+[2025-09-13 10:33:09] | Phone: +971522907170 | Name: Unknown | USER: hey do we need socks?
+[2025-09-13 10:33:13] | Phone: +971522907170 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:37:10] | Phone: +971565383026 | Name: Unknown | USER: hey do i need socks
+[2025-09-13 10:37:14] | Phone: +971565383026 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:39:34] | Phone: +971540460952 | Name: Unknown | USER: hey do we need socks
+[2025-09-13 10:39:37] | Phone: +971540460952 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+**👤 Your name**
+
+**🏢 Which location you're interested in:**
+
+🌟 **Yas Mall** (Abu Dhabi - Yas Island)
+🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
+🌟 **Festival City** (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:43:58] | Phone: +971544438930 | Name: Unknown | USER: hey do we need socks
+[2025-09-13 10:44:01] | Phone: +971544438930 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall (Abu Dhabi - Yas Island)
+🌟 Dalma Mall (Abu Dhabi - Mussafah)  
+🌟 Festival City (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:46:05] | Phone: +971541301441 | Name: Unknown | USER: hey
+[2025-09-13 10:46:09] | Phone: +971541301441 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:47:36] | Phone: +971558546478 | Name: Unknown | USER: do we need socks
+[2025-09-13 10:47:39] | Phone: +971558546478 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:48:16] | Phone: +971558546478 | Name: Unknown | USER: ys mall
+[2025-09-13 10:48:21] | Phone: +971558546478 | Name: Unknown | BOT: Great choice! Yas Mall is a wonderful location! 🌟
+
+Before I can help you further, may I please get your name? This will help me provide you with personalized assistance! 😊
+[2025-09-13 10:48:21] | Phone: +971558546478 | Name: Unknown | BOT: Great choice! Yas Mall is a wonderful location! 🌟
+
+Before I can help you further, may I please get your name? This will help me provide you with personalized assistance! 😊
+[2025-09-13 10:48:25] | Phone: +971558546478 | Name: Unknown | USER: aditya
+[2025-09-13 10:48:48] | Phone: +971558546478 | Name: Aditya | BOT: Great to meet you, Aditya! 🎠
+
+Yes — socks are required in all play zones for hygiene and safety. You can:
+
+- Bring your own clean, non‑slip socks (recommended), or  
+- Buy them at our Yas Mall reception: 5 AED for kids, 8 AED for adults.
+
+A few quick notes:
+- Socks are mandatory for children and adults using activity areas.  
+- If someone cannot wear socks for medical reasons, please speak to reception on arrival so staff can assist.  
+- Would you like me to add socks to a booking or tell you where to pick them up at the entrance?
+[2025-09-13 10:48:48] | Phone: +971558546478 | Name: Aditya | BOT: Great to meet you, Aditya! 🎠
+
+Yes — socks are required in all play zones for hygiene and safety. You can:
+
+- Bring your own clean, non‑slip socks (recommended), or  
+- Buy them at our Yas Mall reception: 5 AED for kids, 8 AED for adults.
+
+A few quick notes:
+- Socks are mandatory for children and adults using activity areas.  
+- If someone cannot wear socks for medical reasons, please speak to reception on arrival so staff can assist.  
+- Would you like me to add socks to a booking or tell you where to pick them up at the entrance?
+[2025-09-13 10:52:05] | Phone: +971558546478 | Name: Aditya | USER: so can i have breakfast inside
+[2025-09-13 10:52:05] | Phone: +971558546478 | Name: Aditya | USER: so can i have breakfast inside
+[2025-09-13 10:52:50] | Phone: +971558546478 | Name: Aditya | BOT: Lovely question, Aditya — thank you! 😊
+
+You can’t bring outside food or drinks into Leo & Loona. However, you are very welcome to have breakfast in our on‑site café/restaurant — food and drinks may be consumed only in designated dining areas. Our café seats up to 130, overlooks the play areas so parents can keep an eye on the fun, and the menu was designed by a Michelin‑starred chef (our food is amazing — just know you’ll be surrounded by joyful kids!).
+
+Would you like the menu or help booking a table? Here are the details if you’d like to reserve:
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Phone: 04 2375454  
+- WhatsApp: +971 501754133
+
+Shall I help you with a reservation?
+[2025-09-13 10:52:50] | Phone: +971558546478 | Name: Aditya | BOT: Lovely question, Aditya — thank you! 😊
+
+You can’t bring outside food or drinks into Leo & Loona. However, you are very welcome to have breakfast in our on‑site café/restaurant — food and drinks may be consumed only in designated dining areas. Our café seats up to 130, overlooks the play areas so parents can keep an eye on the fun, and the menu was designed by a Michelin‑starred chef (our food is amazing — just know you’ll be surrounded by joyful kids!).
+
+Would you like the menu or help booking a table? Here are the details if you’d like to reserve:
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Phone: 04 2375454  
+- WhatsApp: +971 501754133
+
+Shall I help you with a reservation?
+[2025-09-13 10:55:07] | Phone: +971558546478 | Name: Aditya | USER: do you do birthdays?
+[2025-09-13 10:55:07] | Phone: +971558546478 | Name: Aditya | USER: do you do birthdays?
+[2025-09-13 10:55:57] | Phone: +971558546478 | Name: Aditya | BOT: Oh — wonderful news, Aditya! Birthdays at Leo & Loona are truly magical and we’d love to help you celebrate 🎉
+
+Yes — we do birthday parties at our Yas Mall location. A few helpful details from our party offerings:
+- The park can host up to 500 guests at a time.
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (largest room, projection screen).
+  - Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection).
+  - City Room — up to 35 kids (can be united with Kids Room to accommodate up to 50).
+  - Kids Room — up to 15 kids (cozy; can join City Room).
+  - VIP Room — up to 17 people (private, beautifully decorated, dedicated service).
+- Our café seats up to 130 and can take table reservations for birthday/event guests; it overlooks the play areas so parents can supervise while dining.
+- Sales & Information Desk is located at the main entrance (opposite reception) and handles birthday/event bookings and questions.
+
+Sales will connect with you to make it unforgettable. Would you like me to ask Sales to reach out? If so, which contact method do you prefer — call or messenger? Please be ready to share the date, estimated time, and approximate number of guests so we can help faster.
+[2025-09-13 10:55:57] | Phone: +971558546478 | Name: Aditya | BOT: Oh — wonderful news, Aditya! Birthdays at Leo & Loona are truly magical and we’d love to help you celebrate 🎉
+
+Yes — we do birthday parties at our Yas Mall location. A few helpful details from our party offerings:
+- The park can host up to 500 guests at a time.
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (largest room, projection screen).
+  - Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection).
+  - City Room — up to 35 kids (can be united with Kids Room to accommodate up to 50).
+  - Kids Room — up to 15 kids (cozy; can join City Room).
+  - VIP Room — up to 17 people (private, beautifully decorated, dedicated service).
+- Our café seats up to 130 and can take table reservations for birthday/event guests; it overlooks the play areas so parents can supervise while dining.
+- Sales & Information Desk is located at the main entrance (opposite reception) and handles birthday/event bookings and questions.
+
+Sales will connect with you to make it unforgettable. Would you like me to ask Sales to reach out? If so, which contact method do you prefer — call or messenger? Please be ready to share the date, estimated time, and approximate number of guests so we can help faster.
+[2025-09-13 10:57:10] | Phone: +971564399756 | Name: Unknown | USER: hey do you have socs
+[2025-09-13 10:57:13] | Phone: +971564399756 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 10:57:23] | Phone: +971564399756 | Name: Unknown | USER: sumkt
+[2025-09-13 10:57:48] | Phone: +971564399756 | Name: sumkt | BOT: Wonderful, sumkt! 😊
+
+Thanks for checking in — could you help me with two quick things so I can answer perfectly?
+
+1) Do you mean "socs" as in:
+   - socks (merchandise or lost & found),  
+   - school/organization visits (SOCs),  
+   - or something else?
+
+2) Which Leo & Loona location are you asking about — Yas Mall (Yas Island), Dalma Mall (Mussafah), or Festival City (Dubai)?  
+
+If you meant socks (merch), we have gift-shop items at our parks and I can check stock for the specific location. If you meant school/group visits, we do host those and I can share booking info.  
+
+By the way, we’re currently running our Educational Months project — if you’re planning a visit, I can send today’s schedule to help you plan. Would you like that?
+[2025-09-13 10:57:48] | Phone: +971564399756 | Name: sumkt | BOT: Wonderful, sumkt! 😊
+
+Thanks for checking in — could you help me with two quick things so I can answer perfectly?
+
+1) Do you mean "socs" as in:
+   - socks (merchandise or lost & found),  
+   - school/organization visits (SOCs),  
+   - or something else?
+
+2) Which Leo & Loona location are you asking about — Yas Mall (Yas Island), Dalma Mall (Mussafah), or Festival City (Dubai)?  
+
+If you meant socks (merch), we have gift-shop items at our parks and I can check stock for the specific location. If you meant school/group visits, we do host those and I can share booking info.  
+
+By the way, we’re currently running our Educational Months project — if you’re planning a visit, I can send today’s schedule to help you plan. Would you like that?
+[2025-09-13 10:58:17] | Phone: +971564399756 | Name: sumkt | USER: I meants socks and for ys mall
+[2025-09-13 10:58:22] | Phone: +971564399756 | Name: sumkt | USER: I meants socks and for ys mall
+[2025-09-13 10:58:54] | Phone: +971564399756 | Name: sumkt | BOT: Wonderful, sumkt — thanks for clarifying! 😊
+
+At our Leo & Loona Yas Mall location, socks are priced as follows:
+- Kids socks: 5 AED  
+- Adults socks: 8 AED  
+
+These rates apply on both weekdays and weekends.  
+
+If you’d like to check availability or reserve a pair, I don't have stock details here, but you can contact us directly:
+- WhatsApp: +971 501754133  
+- Phone: 04 2375454  
+- Email: info.ll@leoloona.ae  
+- Website (Yas Mall): https://leoloona.ae/yasmall/
+
+We’re located on the 1st floor of Yas Mall, beside Five Guys (nearest parking: Hypermarket Parking). Can I help with anything else for your visit? 🎈
+[2025-09-13 10:58:54] | Phone: +971564399756 | Name: sumkt | BOT: Wonderful, sumkt — thanks for clarifying! 😊
+
+At our Leo & Loona Yas Mall location, socks are priced as follows:
+- Kids socks: 5 AED  
+- Adults socks: 8 AED  
+
+These rates apply on both weekdays and weekends.  
+
+If you’d like to check availability or reserve a pair, I don't have stock details here, but you can contact us directly:
+- WhatsApp: +971 501754133  
+- Phone: 04 2375454  
+- Email: info.ll@leoloona.ae  
+- Website (Yas Mall): https://leoloona.ae/yasmall/
+
+We’re located on the 1st floor of Yas Mall, beside Five Guys (nearest parking: Hypermarket Parking). Can I help with anything else for your visit? 🎈
+[2025-09-13 11:00:26] | Phone: +971501369137 | Name: Unknown | USER: he do i need socks
+[2025-09-13 11:00:31] | Phone: +971501369137 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:00:51] | Phone: +971501369137 | Name: Unknown | USER: ys mall ankit
+[2025-09-13 11:01:17] | Phone: +971501369137 | Name: Ankit | BOT: Wonderful, Ankit! 😊
+
+Yes — socks are mandatory in all play zones at Leo & Loona for safety and hygiene. You can:
+
+- Bring your own clean, closed‑toe, non‑slip socks (no holes).
+- Buy socks at our Yas Mall location: kids AED 5, adults AED 8.
+
+A couple quick reminders: children under 6 need direct adult supervision in play areas, and please sign the waiver on arrival. Would you like me to book passes for your visit or send the booking link?
+[2025-09-13 11:01:17] | Phone: +971501369137 | Name: Ankit | BOT: Wonderful, Ankit! 😊
+
+Yes — socks are mandatory in all play zones at Leo & Loona for safety and hygiene. You can:
+
+- Bring your own clean, closed‑toe, non‑slip socks (no holes).
+- Buy socks at our Yas Mall location: kids AED 5, adults AED 8.
+
+A couple quick reminders: children under 6 need direct adult supervision in play areas, and please sign the waiver on arrival. Would you like me to book passes for your visit or send the booking link?
+[2025-09-13 11:05:04] | Phone: +971507019565 | Name: Unknown | USER: hey i need loaction of ys mall
+[2025-09-13 11:05:08] | Phone: +971507019565 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona Yas Mall!
+
+To give you the best personalized assistance, could you please tell me your name?
+
+I'll then answer your question about our Yas Mall location! ✨
+[2025-09-13 11:05:29] | Phone: +971507019565 | Name: Unknown | USER: raju
+[2025-09-13 11:05:35] | Phone: +971507019565 | Name: Unknown | BOT: I apologize, but I encountered an error processing your question. Please try asking again in a different way, or contact our support team if the issue persists.
+[2025-09-13 11:06:53] | Phone: +971563370162 | Name: Unknown | USER: contact info ys mall
+[2025-09-13 11:06:56] | Phone: +971563370162 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona Yas Mall!
+
+To give you the best personalized assistance, could you please tell me your name?
+
+I'll then answer your question about our Yas Mall location! ✨
+[2025-09-13 11:07:01] | Phone: +971563370162 | Name: Unknown | USER: javed
+[2025-09-13 11:07:29] | Phone: +971563370162 | Name: Javed | BOT: Nice to meet you, Javed! ✨
+
+Great to see you — here’s all the contact and essential info for Leo & Loona at Yas Mall:
+
+Contact details
+- Landline: 04 2375454
+- Email: info.ll@leoloona.ae
+- WhatsApp: +971 50 175 4133
+- YouTube: www.youtube.com/@LeoLoona
+- Instagram: leo.loona
+- Site: https://leoloona.ae/yasmall/
+- Online menu: https://menu.leoloona.ae/LeoLoonaYas/en/home
+- Online booking: https://booking.leoloona.ae/
+
+Location & access
+- Location: Yas Mall, 1st floor, beside Five Guys
+- Nearest parking: Hypermarket Parking
+- Direct access from mall corridors; escalator and lift available (stroller & wheelchair friendly)
+
+Opening hours
+- Sunday–Thursday: 10:00 AM – 11:00 PM
+- Friday–Saturday: 10:00 AM – 12:00 AM
+
+Pricing & socks
+- Weekdays: 2‑Hour Pass 159 AED | Full‑Day Pass 199 AED | Upgrade to Full‑Day +50 AED
+- Weekends: Full‑Day Pass 249 AED
+- Socks: Kids 5 AED | Adults 8 AED
+
+Discounts & special notes
+- 50% off Unlimited Day Pass for children under 1 year (with proof of age) and People of Determination (with valid ID)
+- Adults enter free of charge (please bring ID if applicable)
+- Tickets are non‑transferable and non‑refundable
+- Online booking available (link above) — you can also message us on WhatsApp for quick help
+
+If you’d like, I can:
+- Check availability for a specific date/time
+- Help make a booking or party reservation
+- Tell you more about our party rooms, menu, or facilities
+
+Would you like me to book or check availability for a visit, Javed? 😊
+[2025-09-13 11:07:29] | Phone: +971563370162 | Name: Javed | BOT: Nice to meet you, Javed! ✨
+
+Great to see you — here’s all the contact and essential info for Leo & Loona at Yas Mall:
+
+Contact details
+- Landline: 04 2375454
+- Email: info.ll@leoloona.ae
+- WhatsApp: +971 50 175 4133
+- YouTube: www.youtube.com/@LeoLoona
+- Instagram: leo.loona
+- Site: https://leoloona.ae/yasmall/
+- Online menu: https://menu.leoloona.ae/LeoLoonaYas/en/home
+- Online booking: https://booking.leoloona.ae/
+
+Location & access
+- Location: Yas Mall, 1st floor, beside Five Guys
+- Nearest parking: Hypermarket Parking
+- Direct access from mall corridors; escalator and lift available (stroller & wheelchair friendly)
+
+Opening hours
+- Sunday–Thursday: 10:00 AM – 11:00 PM
+- Friday–Saturday: 10:00 AM – 12:00 AM
+
+Pricing & socks
+- Weekdays: 2‑Hour Pass 159 AED | Full‑Day Pass 199 AED | Upgrade to Full‑Day +50 AED
+- Weekends: Full‑Day Pass 249 AED
+- Socks: Kids 5 AED | Adults 8 AED
+
+Discounts & special notes
+- 50% off Unlimited Day Pass for children under 1 year (with proof of age) and People of Determination (with valid ID)
+- Adults enter free of charge (please bring ID if applicable)
+- Tickets are non‑transferable and non‑refundable
+- Online booking available (link above) — you can also message us on WhatsApp for quick help
+
+If you’d like, I can:
+- Check availability for a specific date/time
+- Help make a booking or party reservation
+- Tell you more about our party rooms, menu, or facilities
+
+Would you like me to book or check availability for a visit, Javed? 😊
+[2025-09-13 11:09:14] | Phone: +971563370162 | Name: Javed | USER: do you do birtdays?
+[2025-09-13 11:09:14] | Phone: +971563370162 | Name: Javed | USER: do you do birtdays?
+[2025-09-13 11:09:54] | Phone: +971563370162 | Name: Javed | BOT: Oh—what wonderful news, Javed! Birthdays at Leo & Loona are truly magical 🎉
+
+Yes — we do host birthday parties. Our Sales & Information Desk (located at the main entrance, opposite reception) will help you with bookings and all event details. Here are the party room options and a few helpful details from our packages:
+
+Party rooms & capacities
+- Leo Room — up to 55 kids (largest room; projection screen available)  
+- Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection)  
+- City Room — up to 35 kids (customizable projection; can unite with Kids Room to accommodate up to 50)  
+- Kids Room — up to 15 kids (cozy; can join City Room)  
+- VIP Room — up to 17 people (private, decorated, dedicated service)
+
+Dining & extras
+- Our café/restaurant seats up to 130 and overlooks the play areas (table reservations for birthday/event guests are available, subject to availability). The menu is designed by a Michelin‑starred chef.
+
+To get started, our Sales team will reach out — could you tell me your preferred contact method (call or messenger)? Please be ready to share the event date, estimated time, and number of guests so we can check availability and make it unforgettable. Would you like me to arrange that now?
+[2025-09-13 11:09:54] | Phone: +971563370162 | Name: Javed | BOT: Oh—what wonderful news, Javed! Birthdays at Leo & Loona are truly magical 🎉
+
+Yes — we do host birthday parties. Our Sales & Information Desk (located at the main entrance, opposite reception) will help you with bookings and all event details. Here are the party room options and a few helpful details from our packages:
+
+Party rooms & capacities
+- Leo Room — up to 55 kids (largest room; projection screen available)  
+- Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection)  
+- City Room — up to 35 kids (customizable projection; can unite with Kids Room to accommodate up to 50)  
+- Kids Room — up to 15 kids (cozy; can join City Room)  
+- VIP Room — up to 17 people (private, decorated, dedicated service)
+
+Dining & extras
+- Our café/restaurant seats up to 130 and overlooks the play areas (table reservations for birthday/event guests are available, subject to availability). The menu is designed by a Michelin‑starred chef.
+
+To get started, our Sales team will reach out — could you tell me your preferred contact method (call or messenger)? Please be ready to share the event date, estimated time, and number of guests so we can check availability and make it unforgettable. Would you like me to arrange that now?
+[2025-09-13 11:14:26] | Phone: +971567965862 | Name: Unknown | USER: hey do i need socms
+[2025-09-13 11:14:30] | Phone: +971567965862 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:14:37] | Phone: +971567965862 | Name: Unknown | USER: ankit yas mall
+[2025-09-13 11:15:02] | Phone: +971567965862 | Name: Ankit | BOT: Great to meet you, Ankit! 🎠
+
+I think you meant “socks” — yes, socks are required. Socks are mandatory in all play zones for hygiene and safety. You can:
+
+- Bring your own clean socks, or  
+- Buy them at Leo & Loona Yas Mall (kids: 5 AED, adults: 8 AED).
+
+If you’d like, I can help you add socks to a booking, check opening hours, or reserve tickets. Would you like me to do that?
+[2025-09-13 11:15:02] | Phone: +971567965862 | Name: Ankit | BOT: Great to meet you, Ankit! 🎠
+
+I think you meant “socks” — yes, socks are required. Socks are mandatory in all play zones for hygiene and safety. You can:
+
+- Bring your own clean socks, or  
+- Buy them at Leo & Loona Yas Mall (kids: 5 AED, adults: 8 AED).
+
+If you’d like, I can help you add socks to a booking, check opening hours, or reserve tickets. Would you like me to do that?
+[2025-09-13 11:15:31] | Phone: +971567965862 | Name: Ankit | USER: adn do you do birtdays?
+[2025-09-13 11:15:31] | Phone: +971567965862 | Name: Ankit | USER: adn do you do birtdays?
+[2025-09-13 11:16:06] | Phone: +971567965862 | Name: Ankit | BOT: Oh wonderful — birthdays at Leo & Loona are truly magical, Ankit! 🎉
+
+Yes, we do birthday parties. Our Sales team will connect with you to make it unforgettable — would you prefer a call or a message (WhatsApp/messenger)? Please have these details ready so we can help quickly: the date, estimated time, and number of guests.
+
+Party rooms and capacities at Leo & Loona Yas Mall:
+- Leo Room — up to 55 kids (largest room; projection screen available)  
+- Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection)  
+- City Room — up to 35 kids (customizable projection; can be united with Kids Room to accommodate up to 50 kids)  
+- Kids Room — up to 15 kids (cozy; can join City Room for larger groups)  
+- VIP Room — up to 17 people (private, beautifully decorated, dedicated service)
+
+Would you like me to pass your details to Sales now, or send you the next steps?
+[2025-09-13 11:16:06] | Phone: +971567965862 | Name: Ankit | BOT: Oh wonderful — birthdays at Leo & Loona are truly magical, Ankit! 🎉
+
+Yes, we do birthday parties. Our Sales team will connect with you to make it unforgettable — would you prefer a call or a message (WhatsApp/messenger)? Please have these details ready so we can help quickly: the date, estimated time, and number of guests.
+
+Party rooms and capacities at Leo & Loona Yas Mall:
+- Leo Room — up to 55 kids (largest room; projection screen available)  
+- Elf Room — up to 36 kids (elf theme, interactive party tables, customizable projection)  
+- City Room — up to 35 kids (customizable projection; can be united with Kids Room to accommodate up to 50 kids)  
+- Kids Room — up to 15 kids (cozy; can join City Room for larger groups)  
+- VIP Room — up to 17 people (private, beautifully decorated, dedicated service)
+
+Would you like me to pass your details to Sales now, or send you the next steps?
+[2025-09-13 11:16:50] | Phone: +971567965862 | Name: Ankit | USER: may i know whats your opening hours
+[2025-09-13 11:16:50] | Phone: +971567965862 | Name: Ankit | USER: may i know whats your opening hours
+[2025-09-13 11:17:30] | Phone: +971567965862 | Name: Ankit | BOT: Hello — what a lovely question! 😊
+
+Our opening hours at Leo & Loona Yas Mall are:
+- Sunday to Thursday: 10:00 AM – 11:00 PM  
+- Friday & Saturday: 10:00 AM – 12:00 AM  
+- Holidays: depend on mall operating hours
+
+Please note operating hours and prices may change without prior notice. If you’d like, I can help check availability, tickets, or make a reservation. You can also reach us at:
+- Phone: 04 2375454  
+- WhatsApp: +971 501754133  
+- Email: info.ll@leoloona.ae  
+- Online booking: https://booking.leoloona.ae/
+
+Can I help you with anything else for your visit? 🎠
+[2025-09-13 11:17:30] | Phone: +971567965862 | Name: Ankit | BOT: Hello — what a lovely question! 😊
+
+Our opening hours at Leo & Loona Yas Mall are:
+- Sunday to Thursday: 10:00 AM – 11:00 PM  
+- Friday & Saturday: 10:00 AM – 12:00 AM  
+- Holidays: depend on mall operating hours
+
+Please note operating hours and prices may change without prior notice. If you’d like, I can help check availability, tickets, or make a reservation. You can also reach us at:
+- Phone: 04 2375454  
+- WhatsApp: +971 501754133  
+- Email: info.ll@leoloona.ae  
+- Online booking: https://booking.leoloona.ae/
+
+Can I help you with anything else for your visit? 🎠
+[2025-09-13 11:25:15] | Phone: +971567254071 | Name: Unknown | USER: hey do we need socks
+[2025-09-13 11:25:19] | Phone: +971567254071 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:25:58] | Phone: +971567254071 | Name: Unknown | USER: kartik ys mall
+[2025-09-13 11:26:22] | Phone: +971567254071 | Name: Kartik | BOT: Thank you, Kartik! 😊
+
+Yes — socks are mandatory in all play zones. You can bring your own clean socks or buy them at reception (Yas Mall: 5 AED for kids, 8 AED for adults). 
+
+A couple of quick reminders for a smooth visit:
+- Children under 6 need direct adult supervision in play areas; 6–12 must be accompanied on the premises.  
+- Long hair should be tied up and loose items/jewellery removed before playing.  
+- A waiver signed by an adult (18+) is required for entry.
+
+Would you like me to check availability or send the online booking link?
+[2025-09-13 11:26:22] | Phone: +971567254071 | Name: Kartik | BOT: Thank you, Kartik! 😊
+
+Yes — socks are mandatory in all play zones. You can bring your own clean socks or buy them at reception (Yas Mall: 5 AED for kids, 8 AED for adults). 
+
+A couple of quick reminders for a smooth visit:
+- Children under 6 need direct adult supervision in play areas; 6–12 must be accompanied on the premises.  
+- Long hair should be tied up and loose items/jewellery removed before playing.  
+- A waiver signed by an adult (18+) is required for entry.
+
+Would you like me to check availability or send the online booking link?
+[2025-09-13 11:28:46] | Phone: +971543958335 | Name: Unknown | USER: do we need socks
+[2025-09-13 11:28:49] | Phone: +971543958335 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:29:00] | Phone: +971543958335 | Name: Unknown | USER: kizu ys mall
+[2025-09-13 11:29:31] | Phone: +971543958335 | Name: Kizu | BOT: Great to meet you, Kizu! 🎠
+
+Yes — socks are mandatory in all play zones for hygiene and safety (adults and children alike). If you forget them, we sell socks at reception — at our Yas Mall location they’re 5 AED for kids and 8 AED for adults. You can remove socks in the designated dining area if you’re eating.
+
+Would you like me to check the exact price for another location or add socks to a booking?
+[2025-09-13 11:29:31] | Phone: +971543958335 | Name: Kizu | BOT: Great to meet you, Kizu! 🎠
+
+Yes — socks are mandatory in all play zones for hygiene and safety (adults and children alike). If you forget them, we sell socks at reception — at our Yas Mall location they’re 5 AED for kids and 8 AED for adults. You can remove socks in the designated dining area if you’re eating.
+
+Would you like me to check the exact price for another location or add socks to a booking?
+[2025-09-13 11:29:41] | Phone: +971543958335 | Name: Kizu | USER: and do you do birtdays?
+[2025-09-13 11:29:41] | Phone: +971543958335 | Name: Kizu | USER: and do you do birtdays?
+[2025-09-13 11:30:32] | Phone: +971543958335 | Name: Kizu | BOT: Oh Kizu — what a beautiful name! 🎉 Yes — we absolutely do birthdays at our Yas Mall park.
+
+Here’s what we offer at Leo & Loona — Yas Mall:
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (biggest room with a projection screen)
+  - Elf Room — up to 36 kids (elf theme with interactive party tables and customizable projection)
+  - City Room — up to 35 kids (customizable projection; can unite with Kids Room to accommodate up to 50)
+  - Kids Room — up to 15 kids (cozy; can join City Room)
+  - VIP Room — up to 17 people (private, decorated, dedicated service)
+- The park can host up to 500 guests at a time, and our café (130 seats) can be reserved for birthday/event guests (subject to availability). The café overlooks the play areas so parents can relax while supervising.
+
+Our Sales team will connect with you to make it unforgettable — may I ask your preferred contact method (call or messenger)? Please have the main event details ready (date, estimated time, and number of guests) and we’ll take it from there. 
+
+Would you like me to pass your contact preference to the Sales team now?
+[2025-09-13 11:30:32] | Phone: +971543958335 | Name: Kizu | BOT: Oh Kizu — what a beautiful name! 🎉 Yes — we absolutely do birthdays at our Yas Mall park.
+
+Here’s what we offer at Leo & Loona — Yas Mall:
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (biggest room with a projection screen)
+  - Elf Room — up to 36 kids (elf theme with interactive party tables and customizable projection)
+  - City Room — up to 35 kids (customizable projection; can unite with Kids Room to accommodate up to 50)
+  - Kids Room — up to 15 kids (cozy; can join City Room)
+  - VIP Room — up to 17 people (private, decorated, dedicated service)
+- The park can host up to 500 guests at a time, and our café (130 seats) can be reserved for birthday/event guests (subject to availability). The café overlooks the play areas so parents can relax while supervising.
+
+Our Sales team will connect with you to make it unforgettable — may I ask your preferred contact method (call or messenger)? Please have the main event details ready (date, estimated time, and number of guests) and we’ll take it from there. 
+
+Would you like me to pass your contact preference to the Sales team now?
+[2025-09-13 11:31:02] | Phone: +971543958335 | Name: Kizu | USER: can you tell the opening time?
+[2025-09-13 11:31:02] | Phone: +971543958335 | Name: Kizu | USER: can you tell the opening time?
+[2025-09-13 11:31:48] | Phone: +971543958335 | Name: Kizu | BOT: Hello — great question! We open at 10:00 AM at our Yas Mall location. Our full hours there are:
+- Sunday to Thursday: 10:00 AM – 11:00 PM
+- Friday to Saturday: 10:00 AM – 12:00 AM
+
+Would you like me to check availability or send the online booking link? 😊
+[2025-09-13 11:31:48] | Phone: +971543958335 | Name: Kizu | BOT: Hello — great question! We open at 10:00 AM at our Yas Mall location. Our full hours there are:
+- Sunday to Thursday: 10:00 AM – 11:00 PM
+- Friday to Saturday: 10:00 AM – 12:00 AM
+
+Would you like me to check availability or send the online booking link? 😊
+[2025-09-13 11:34:25] | Phone: +971546364992 | Name: Unknown | USER: do we need socks
+[2025-09-13 11:34:28] | Phone: +971546364992 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:34:37] | Phone: +971546364992 | Name: Unknown | USER: goichy ys mall
+[2025-09-13 11:35:04] | Phone: +971546364992 | Name: goichy | BOT: Wonderful, goichy! 😊
+
+Yes — socks are mandatory in all play/activity zones for hygiene and safety. You can bring your own clean socks, or buy them at the venue (at our Yas Mall location they’re 5 AED for kids and 8 AED for adults). 
+
+Would you like me to check hours, book tickets, or tell you where to buy socks when you arrive?
+[2025-09-13 11:35:04] | Phone: +971546364992 | Name: goichy | BOT: Wonderful, goichy! 😊
+
+Yes — socks are mandatory in all play/activity zones for hygiene and safety. You can bring your own clean socks, or buy them at the venue (at our Yas Mall location they’re 5 AED for kids and 8 AED for adults). 
+
+Would you like me to check hours, book tickets, or tell you where to buy socks when you arrive?
+[2025-09-13 11:35:37] | Phone: +971546364992 | Name: goichy | USER: so do you do birtdasys
+[2025-09-13 11:35:37] | Phone: +971546364992 | Name: goichy | USER: so do you do birtdasys
+[2025-09-13 11:36:18] | Phone: +971546364992 | Name: goichy | BOT: Oh — that's wonderful news, goichy! 🎉 Yes, we do birthdays at Leo & Loona Yas Mall — birthday parties are one of a kind here and guests always leave delighted.
+
+A few helpful details from our side:
+- We have party rooms: Leo Room (up to 55 kids) and Elf Room (up to 36 kids). Both have projection screens and interactive features for celebrations.
+- Our Sales & Information Desk (located at the main entrance, opposite reception) handles birthday and event bookings and can help plan everything.
+
+Would you like Sales to get in touch? Which contact method do you prefer — call or WhatsApp/messenger? Please be ready to share the event date, estimated time, and number of guests so we can assist quickly.
+
+You can also contact us directly:
+- Phone: 04 2375454
+- WhatsApp: +971 501754133
+- Email: info.ll@leoloona.ae
+
+If you want, I can help start the process right now — what’s the best way to reach you?
+[2025-09-13 11:36:18] | Phone: +971546364992 | Name: goichy | BOT: Oh — that's wonderful news, goichy! 🎉 Yes, we do birthdays at Leo & Loona Yas Mall — birthday parties are one of a kind here and guests always leave delighted.
+
+A few helpful details from our side:
+- We have party rooms: Leo Room (up to 55 kids) and Elf Room (up to 36 kids). Both have projection screens and interactive features for celebrations.
+- Our Sales & Information Desk (located at the main entrance, opposite reception) handles birthday and event bookings and can help plan everything.
+
+Would you like Sales to get in touch? Which contact method do you prefer — call or WhatsApp/messenger? Please be ready to share the event date, estimated time, and number of guests so we can assist quickly.
+
+You can also contact us directly:
+- Phone: 04 2375454
+- WhatsApp: +971 501754133
+- Email: info.ll@leoloona.ae
+
+If you want, I can help start the process right now — what’s the best way to reach you?
+[2025-09-13 11:39:06] | Phone: +971589195511 | Name: Unknown | USER: hey i need socks price
+[2025-09-13 11:39:09] | Phone: +971589195511 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:39:17] | Phone: +971589195511 | Name: Unknown | USER: nami dalma mall
+[2025-09-13 11:39:47] | Phone: +971589195511 | Name: Nami | BOT: Thank you, Nami! 😊
+
+At our Dalma Mall location, socks are:
+- Kids: 5 AED
+- Adults: 8 AED
+
+We’re open today (Saturday) — Sep–Jun weekend hours are 10:00 AM to 12:00 AM, so you can pop in anytime. Would you like me to hold a pair for you or send our booking link/ directions? You can also reach us on WhatsApp: +971522120754 or book online: https://booking.leoloona.ae/
+[2025-09-13 11:39:47] | Phone: +971589195511 | Name: Nami | BOT: Thank you, Nami! 😊
+
+At our Dalma Mall location, socks are:
+- Kids: 5 AED
+- Adults: 8 AED
+
+We’re open today (Saturday) — Sep–Jun weekend hours are 10:00 AM to 12:00 AM, so you can pop in anytime. Would you like me to hold a pair for you or send our booking link/ directions? You can also reach us on WhatsApp: +971522120754 or book online: https://booking.leoloona.ae/
+[2025-09-13 11:39:56] | Phone: +971589195511 | Name: Nami | USER: so do you do birtdays
+[2025-09-13 11:39:56] | Phone: +971589195511 | Name: Nami | USER: so do you do birtdays
+[2025-09-13 11:40:44] | Phone: +971589195511 | Name: Nami | BOT: Oh Nami — what wonderful news! Birthdays at Leo & Loona are truly magical 🎉
+
+Yes, we do birthday parties. Our Sales Office at the entrance handles all bookings and special event packages and will connect with you to make it unforgettable. Could you tell me which contact method you prefer — a call or messenger/WhatsApp? And please have these details ready so we can help right away: date, estimated time, and number of guests.
+
+Party rooms we offer (capacities):
+- Ramp to the Stars — up to 32 kids (cosmic theme, interactive tables, customizable projection)
+- Friends City (Room 2) — up to 40 kids (can unite with Room 3 to reach 55)
+- Friends City (Room 3) — up to 15 kids (cozy; can join Room 2)
+- Cotton Candy Sky — up to 55 kids
+- VIP Room — up to 20 adults (private, elegantly decorated)
+
+You can reach our Dalma Mall team directly:
+- WhatsApp: +971522120754
+- Landline: 04 2375454
+- Email: leoandloonadalma@gmail.com
+
+Would you like me to ask Sales to contact you now via WhatsApp, or would you prefer a phone call?
+[2025-09-13 11:40:44] | Phone: +971589195511 | Name: Nami | BOT: Oh Nami — what wonderful news! Birthdays at Leo & Loona are truly magical 🎉
+
+Yes, we do birthday parties. Our Sales Office at the entrance handles all bookings and special event packages and will connect with you to make it unforgettable. Could you tell me which contact method you prefer — a call or messenger/WhatsApp? And please have these details ready so we can help right away: date, estimated time, and number of guests.
+
+Party rooms we offer (capacities):
+- Ramp to the Stars — up to 32 kids (cosmic theme, interactive tables, customizable projection)
+- Friends City (Room 2) — up to 40 kids (can unite with Room 3 to reach 55)
+- Friends City (Room 3) — up to 15 kids (cozy; can join Room 2)
+- Cotton Candy Sky — up to 55 kids
+- VIP Room — up to 20 adults (private, elegantly decorated)
+
+You can reach our Dalma Mall team directly:
+- WhatsApp: +971522120754
+- Landline: 04 2375454
+- Email: leoandloonadalma@gmail.com
+
+Would you like me to ask Sales to contact you now via WhatsApp, or would you prefer a phone call?
+[2025-09-13 11:43:38] | Phone: +971589195511 | Name: Nami | USER: what the opening time
+[2025-09-13 11:43:38] | Phone: +971589195511 | Name: Nami | USER: what the opening time
+[2025-09-13 11:44:23] | Phone: +971589195511 | Name: Nami | BOT: Hello — lovely question! We open at 10:00 AM 😊
+
+Here are the Dalma Mall hours from our schedule:
+- July–August: Monday to Sunday — 10:00 AM to 12:00 AM  
+- September–June: Sunday–Thursday — 10:00 AM to 10:00 PM; Friday & Saturday — 10:00 AM to 12:00 AM
+
+Please note operating hours may change without prior notice. Would you like me to send the booking link or connect you via WhatsApp to confirm? You can also reach us at +971522120754 or 04 2375454.
+[2025-09-13 11:44:23] | Phone: +971589195511 | Name: Nami | BOT: Hello — lovely question! We open at 10:00 AM 😊
+
+Here are the Dalma Mall hours from our schedule:
+- July–August: Monday to Sunday — 10:00 AM to 12:00 AM  
+- September–June: Sunday–Thursday — 10:00 AM to 10:00 PM; Friday & Saturday — 10:00 AM to 12:00 AM
+
+Please note operating hours may change without prior notice. Would you like me to send the booking link or connect you via WhatsApp to confirm? You can also reach us at +971522120754 or 04 2375454.
+[2025-09-13 11:46:12] | Phone: +971504448353 | Name: Unknown | USER: do we need socks
+[2025-09-13 11:46:15] | Phone: +971504448353 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:46:20] | Phone: +971504448353 | Name: Unknown | USER: chopper ys mall
+[2025-09-13 11:46:51] | Phone: +971504448353 | Name: Chopper | BOT: Thank you, Chopper! 😊
+
+Yes — socks are mandatory in all play zones for hygiene and safety, and adults must wear them too. If you forget yours, we sell socks at reception (at our Yas Mall location they’re AED 5 for kids and AED 8 for adults).  
+
+Visiting a different Leo & Loona location? Tell me which one and I’ll confirm the price and any other local details. Would you like me to add socks to your booking or help with anything else?
+[2025-09-13 11:46:51] | Phone: +971504448353 | Name: Chopper | BOT: Thank you, Chopper! 😊
+
+Yes — socks are mandatory in all play zones for hygiene and safety, and adults must wear them too. If you forget yours, we sell socks at reception (at our Yas Mall location they’re AED 5 for kids and AED 8 for adults).  
+
+Visiting a different Leo & Loona location? Tell me which one and I’ll confirm the price and any other local details. Would you like me to add socks to your booking or help with anything else?
+[2025-09-13 11:47:16] | Phone: +971504448353 | Name: Chopper | USER: so do you do birtdays
+[2025-09-13 11:47:16] | Phone: +971504448353 | Name: Chopper | USER: so do you do birtdays
+[2025-09-13 11:47:59] | Phone: +971504448353 | Name: Chopper | BOT: Oh — happy birthday planning, Chopper — what a fun name! 🎉
+
+Yes — we do birthdays at Leo & Loona Yas Mall. Birthdays are truly magical here, and our Sales team will be happy to help make it unforgettable. A quick overview of what we offer at the Yas Mall location:
+
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (largest room with a projection screen)
+  - Elf Room — up to 36 kids (interactive party tables + customizable screen)
+  - City Room — up to 35 kids (can be united with Kids Room to accommodate up to 50 kids)
+  - Kids Room — up to 15 kids (can join with City Room for up to 50)
+  - VIP Room — up to 17 people (private, decorated, premium service)
+
+- The Sales & Information Desk is located at the main entrance (opposite the reception) and assists with birthday and event bookings.
+
+Would you like me to have Sales contact you? If so, which contact method do you prefer — call or messenger? Also please be ready to share the event date, estimated time, and expected number of guests so we can best assist you.
+[2025-09-13 11:47:59] | Phone: +971504448353 | Name: Chopper | BOT: Oh — happy birthday planning, Chopper — what a fun name! 🎉
+
+Yes — we do birthdays at Leo & Loona Yas Mall. Birthdays are truly magical here, and our Sales team will be happy to help make it unforgettable. A quick overview of what we offer at the Yas Mall location:
+
+- Party rooms and capacities:
+  - Leo Room — up to 55 kids (largest room with a projection screen)
+  - Elf Room — up to 36 kids (interactive party tables + customizable screen)
+  - City Room — up to 35 kids (can be united with Kids Room to accommodate up to 50 kids)
+  - Kids Room — up to 15 kids (can join with City Room for up to 50)
+  - VIP Room — up to 17 people (private, decorated, premium service)
+
+- The Sales & Information Desk is located at the main entrance (opposite the reception) and assists with birthday and event bookings.
+
+Would you like me to have Sales contact you? If so, which contact method do you prefer — call or messenger? Also please be ready to share the event date, estimated time, and expected number of guests so we can best assist you.
+[2025-09-13 11:48:25] | Phone: +971504448353 | Name: Chopper | USER: so what the opening time?
+[2025-09-13 11:48:25] | Phone: +971504448353 | Name: Chopper | USER: so what the opening time?
+[2025-09-13 11:49:18] | Phone: +971504448353 | Name: Chopper | BOT: Hi there — great question! We open at 10:00 AM. At our Yas Mall location the usual closing times are:
+- Sunday–Thursday: 11:00 PM
+- Friday–Saturday: 12:00 AM (midnight)
+
+Holidays follow the mall’s operating hours, and please note operating hours may change without prior notice. Would you like me to check availability or help book tickets? You can also reach us at 04 2375454, WhatsApp +971501754133, or info.ll@leoloona.ae 😊
+[2025-09-13 11:49:18] | Phone: +971504448353 | Name: Chopper | BOT: Hi there — great question! We open at 10:00 AM. At our Yas Mall location the usual closing times are:
+- Sunday–Thursday: 11:00 PM
+- Friday–Saturday: 12:00 AM (midnight)
+
+Holidays follow the mall’s operating hours, and please note operating hours may change without prior notice. Would you like me to check availability or help book tickets? You can also reach us at 04 2375454, WhatsApp +971501754133, or info.ll@leoloona.ae 😊
+[2025-09-13 11:50:57] | Phone: +971509644838 | Name: Unknown | USER: how to get socks
+[2025-09-13 11:51:01] | Phone: +971509644838 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-13 11:51:10] | Phone: +971509644838 | Name: Unknown | USER: kizaru dal mall
+[2025-09-13 11:51:52] | Phone: +971509644838 | Name: Kizaru | BOT: Wonderful, Kizaru! 😊
+
+Socks are mandatory in all play zones. You can:
+
+- Buy them at the park entrance/ticket desk or guest services when you arrive (kids: 5 AED, adults: 8 AED).  
+- Or bring your own clean, non‑slip socks.
+
+Would you like details for a specific location (Dalma Mall, Yas Mall, or Festival City)? If you’re coming to Dalma Mall I can share the direct WhatsApp number (+971522120754) or help add socks to a booking.
+[2025-09-13 11:51:52] | Phone: +971509644838 | Name: Kizaru | BOT: Wonderful, Kizaru! 😊
+
+Socks are mandatory in all play zones. You can:
+
+- Buy them at the park entrance/ticket desk or guest services when you arrive (kids: 5 AED, adults: 8 AED).  
+- Or bring your own clean, non‑slip socks.
+
+Would you like details for a specific location (Dalma Mall, Yas Mall, or Festival City)? If you’re coming to Dalma Mall I can share the direct WhatsApp number (+971522120754) or help add socks to a booking.
+[2025-09-13 11:52:16] | Phone: +971509644838 | Name: Kizaru | USER: do you do birthdays?
+[2025-09-13 11:52:16] | Phone: +971509644838 | Name: Kizaru | USER: do you do birthdays?
+[2025-09-13 11:53:03] | Phone: +971509644838 | Name: Kizaru | BOT: Hello Kizaru — what a lovely idea! 🎉
+
+Yes — we do birthdays at Leo & Loona! Birthdays here are truly magical, and our Sales team will be happy to help plan an unforgettable celebration. Could you tell me your preferred contact method — call or WhatsApp/messenger — so Sales can reach out?
+
+Please be ready to share a few key details: date, estimated time, and estimated number of guests. Our Sales Office is located at the entrance and handles all bookings and party packages; the Ticket Counter can also help with initial questions.
+
+We have several themed party rooms to choose from:
+- Ramp to the Stars — capacity up to 32 kids (cosmic theme, interactive tables, customizable projection screen)  
+- Friends City (Room 2) — capacity up to 40 kids (can join with Room 3 for up to 55)  
+- Friends City (Room 3) — capacity up to 15 kids (cozy, great for small groups)  
+- Cotton Candy Sky — capacity up to 55 kids (dreamy pastel theme)  
+- VIP Room — capacity up to 20 adults (private, elegantly decorated)
+
+If you’d like, I can share our Dalma Mall contact details so you can message or call Sales directly:  
+- WhatsApp: +971522120754  
+- Landline: 04 2375454  
+- Email: leoandloonadalma@gmail.com
+
+Would you like me to connect Sales now or send these details to you?
+[2025-09-13 11:53:03] | Phone: +971509644838 | Name: Kizaru | BOT: Hello Kizaru — what a lovely idea! 🎉
+
+Yes — we do birthdays at Leo & Loona! Birthdays here are truly magical, and our Sales team will be happy to help plan an unforgettable celebration. Could you tell me your preferred contact method — call or WhatsApp/messenger — so Sales can reach out?
+
+Please be ready to share a few key details: date, estimated time, and estimated number of guests. Our Sales Office is located at the entrance and handles all bookings and party packages; the Ticket Counter can also help with initial questions.
+
+We have several themed party rooms to choose from:
+- Ramp to the Stars — capacity up to 32 kids (cosmic theme, interactive tables, customizable projection screen)  
+- Friends City (Room 2) — capacity up to 40 kids (can join with Room 3 for up to 55)  
+- Friends City (Room 3) — capacity up to 15 kids (cozy, great for small groups)  
+- Cotton Candy Sky — capacity up to 55 kids (dreamy pastel theme)  
+- VIP Room — capacity up to 20 adults (private, elegantly decorated)
+
+If you’d like, I can share our Dalma Mall contact details so you can message or call Sales directly:  
+- WhatsApp: +971522120754  
+- Landline: 04 2375454  
+- Email: leoandloonadalma@gmail.com
+
+Would you like me to connect Sales now or send these details to you?
+[2025-09-13 11:53:26] | Phone: +971509644838 | Name: Kizaru | USER: whats the opning time
+[2025-09-13 11:53:26] | Phone: +971509644838 | Name: Kizaru | USER: whats the opning time
+[2025-09-13 11:54:20] | Phone: +971509644838 | Name: Kizaru | BOT: Hello — what a great question! 😊
+
+At our Dalma Mall location (September–June schedule) we’re open:
+- Sunday–Thursday: 10:00 AM to 10:00 PM
+- Friday & Saturday: 10:00 AM to 12:00 AM
+
+So today (Saturday) we’re open from 10:00 AM to 12:00 AM — we’re currently open. Would you like help with directions or booking tickets? You can WhatsApp us at +971522120754 or call 04 2375454.
+[2025-09-13 11:54:20] | Phone: +971509644838 | Name: Kizaru | BOT: Hello — what a great question! 😊
+
+At our Dalma Mall location (September–June schedule) we’re open:
+- Sunday–Thursday: 10:00 AM to 10:00 PM
+- Friday & Saturday: 10:00 AM to 12:00 AM
+
+So today (Saturday) we’re open from 10:00 AM to 12:00 AM — we’re currently open. Would you like help with directions or booking tickets? You can WhatsApp us at +971522120754 or call 04 2375454.

@@ -223,7 +223,7 @@ class LeadManager:
         
         # Quick keyword check first (for obvious cases to save API calls)
         obvious_keywords = ['birthday', 'birthdays', 'bday', 'party', 'parties', 'celebration',
-                           'biortdays', 'bithday', 'birhtday', 'birtday']  # Common typos
+                           'biortdays', 'bithday', 'birhtday', 'birtday', 'birtdasys']  # Common typos
         
         for keyword in obvious_keywords:
             if keyword in content_lower:
@@ -253,6 +253,8 @@ class LeadManager:
                         - "Do you do birthdays?"
                         - "do you do biortdays?" (typo for birthdays)
                         - "hey do you do biortdays?" (typo for birthdays)  
+                        - "so do you do birtdasys" (typo for birthdays)
+                        - "and do you do birtdays?" (typo for birthdays)
                         - "Can we celebrate there?"
                         - "My son is turning 5"
                         - "Looking for a party venue"
@@ -264,6 +266,8 @@ class LeadManager:
                         - "can i book for a party"
                         - "bithday party" (typo)
                         - "birhtday" (typo)
+                        - "birtday" (typo)
+                        - "birtdasys" (typo)
                         - "patrues" (typo for parties)
                         
                         Examples that should be NO:
@@ -541,6 +545,21 @@ class LeadManager:
             return None
             
         try:
+            # Get current lead info to check current status
+            lead_info = self.client.get_lead_by_id(lead_id)
+            
+            # Extract data from the nested 'result' structure
+            lead_data = lead_info.get('result', {}) if lead_info else {}
+            current_status = lead_data.get('STATUS_ID', 'NEW')
+            current_title = lead_data.get('TITLE', '')
+            print(f"🔍 Current lead status: {current_status}")
+            print(f"🔍 Current lead title: '{current_title}'")
+            print(f"🔍 EXTRACTED DATA: status={current_status}, title={current_title}")
+            
+            # Check if lead is already in birthday stage (NEW APPROACH OR has Birthday in title)
+            is_already_birthday = (current_status == 'UC_NJ6R1M') or ('Birthday' in current_title)
+            print(f"🔍 Is birthday lead? Status={current_status=='UC_NJ6R1M'}, Title contains Birthday={'Birthday' in current_title}, Final={is_already_birthday}")
+            
             name = user_info.get('name', 'Web Visitor')
             phone = user_info.get('phone', '')
             
@@ -550,15 +569,17 @@ class LeadManager:
             print(f"🔍 UPDATE DEBUG - Birthday check result: {is_birthday_question}")
             print(f"🔍 UPDATE DEBUG - Content being checked: '{conversation_content[:100]}...'")
             print(f"🔍 UPDATE DEBUG - Park location: {park_location}")
+            print(f"🔍 UPDATE DEBUG - Already birthday stage: {is_already_birthday}")
             
             # Prepare update data
             update_data = {}
             
             if is_birthday_question:
-                # Birthday question → Stay in Inquiry but assign to sales team
-                print(f"🎂 Birthday question detected - staying in Inquiry but assigning to sales team for {park_location}")
+                # Birthday question → Move to NEW APPROACH and assign to sales team
+                print(f"🎂 Birthday question detected - moving to NEW APPROACH stage for {park_location}")
                 
-                # Keep in Inquiry stage (STATUS_ID = 'NEW') but assign to sales team
+                # Move to NEW APPROACH stage (STATUS_ID = 'UC_NJ6R1M') and assign to sales team
+                update_data['STATUS_ID'] = 'UC_NJ6R1M'  # NEW APPROACH for birthday parties
                 update_data['TITLE'] = f"Birthday - {name}"
                 update_data['NAME'] = name  # FIXED: Clean name without brackets
                 
@@ -573,7 +594,7 @@ class LeadManager:
                                                f"📞 Phone: {phone}\n" \
                                                f"🔄 Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
                                                f"🎯 Assigned to: {assignment_info['user_name']} ({assignment_info['team_name']})\n" \
-                                               f"📋 Status: Inquiry (Birthday)\n" \
+                                               f"📋 Status: NEW APPROACH (Birthday)\n" \
                                                f"🎂 Birthday inquiry - ready for sales team\n" \
                                                f"💬 Question: {conversation_content[:100]}..."
                     
@@ -582,34 +603,62 @@ class LeadManager:
                     if park_fields:
                         update_data.update(park_fields)
                         
-                    print(f"🎂 Birthday lead: Inquiry → Inquiry + {assignment_info['user_name']}")
+                    print(f"🎂 Birthday lead: Inquiry → NEW APPROACH + {assignment_info['user_name']}")
                 
             else:
-                # General question → Move to General Questions stage
-                print(f"💬 General question detected - moving to General Questions stage")
-                
-                update_data['STATUS_ID'] = 'UC_0MD91B'  # General Questions
-                update_data['TITLE'] = f"General Inquiry - {name}"
-                update_data['NAME'] = name  # FIXED: Clean name without brackets
-                
-                # CRITICAL FIX: Always add park location fields when location is known
-                if park_location and park_location != "General":
-                    park_fields = self._get_park_field_values(park_location)
-                    if park_fields:
-                        update_data.update(park_fields)
-                        print(f"🏢 Added/updated park location fields: {park_location} → {len(park_fields)} fields")
+                # General question handling
+                if is_already_birthday:
+                    # 🎂 BIRTHDAY PRESERVATION: Lead is already in NEW APPROACH (birthday stage)
+                    # Do NOT change status or title, just update location if needed
+                    print(f"🎂 Birthday lead asking general question - preserving NEW APPROACH stage")
+                    
+                    # Only update park location fields if provided (keep existing birthday status)
+                    if park_location and park_location != "General":
+                        park_fields = self._get_park_field_values(park_location)
+                        if park_fields:
+                            update_data.update(park_fields)
+                            print(f"🏢 Updated park location for birthday lead: {park_location}")
+                        else:
+                            print(f"⚠️ No park fields found for location: {park_location}")
+                        
+                        # Add general comment without changing status
+                        update_data['COMMENTS'] = f"🎂 BIRTHDAY LEAD - Additional Question\n" \
+                                               f"👤 Customer: {name}\n" \
+                                               f"📞 Phone: {phone}\n" \
+                                               f"🔄 Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
+                                               f"📋 Status: NEW APPROACH (Birthday) - PRESERVED\n" \
+                                               f"💬 Additional question from birthday customer\n" \
+                                               f"📝 Content: {conversation_content[:100]}..."
                     else:
-                        print(f"⚠️ No park fields found for location: {park_location}")
-                update_data['COMMENTS'] = f"💬 GENERAL QUESTIONS LEAD\n" \
-                                       f"👤 Customer: {name}\n" \
-                                       f"📞 Phone: {phone}\n" \
-                                       f"🔄 Moved: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
-                                       f"🎯 Assigned to: AI Chatbot Assistant (38005)\n" \
-                                       f"📋 Status: General Questions\n" \
-                                       f"💬 General inquiry - ready for review\n" \
-                                       f"📝 Content: {conversation_content[:100]}..."
-                
-                print(f"💬 Lead progression: Inquiry → General Questions")
+                        # No location update needed, don't update anything
+                        print(f"🎂 Birthday lead - no updates needed, preserving stage")
+                        update_data = {}  # Clear update data to prevent any changes
+                else:
+                    # Regular general question → Move to General Questions stage
+                    print(f"💬 General question detected - moving to General Questions stage")
+                    
+                    update_data['STATUS_ID'] = 'UC_0MD91B'  # General Questions
+                    update_data['TITLE'] = f"General Inquiry - {name}"
+                    update_data['NAME'] = name  # FIXED: Clean name without brackets
+                    
+                    # CRITICAL FIX: Always add park location fields when location is known
+                    if park_location and park_location != "General":
+                        park_fields = self._get_park_field_values(park_location)
+                        if park_fields:
+                            update_data.update(park_fields)
+                            print(f"🏢 Added/updated park location fields: {park_location} → {len(park_fields)} fields")
+                        else:
+                            print(f"⚠️ No park fields found for location: {park_location}")
+                    update_data['COMMENTS'] = f"💬 GENERAL QUESTIONS LEAD\n" \
+                                           f"👤 Customer: {name}\n" \
+                                           f"📞 Phone: {phone}\n" \
+                                           f"🔄 Moved: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" \
+                                           f"🎯 Assigned to: AI Chatbot Assistant (38005)\n" \
+                                           f"📋 Status: General Questions\n" \
+                                           f"💬 General inquiry - ready for review\n" \
+                                           f"📝 Content: {conversation_content[:100]}..."
+                    
+                    print(f"💬 Lead progression: Inquiry → General Questions")
             
             # Only update if we have something to update
             if not update_data:
@@ -669,15 +718,27 @@ class LeadManager:
                 print(f"🎂 Birthday question detected for lead {lead_id} - need mall clarification first (no update)")
                 return False
         else:
-            # General question → Move to General Questions stage if not already there
+            # General question handling
+            lead_id = user_info.get('bitrix_lead_id')
+            
+            # 🎂 BIRTHDAY PRESERVATION: Don't move birthday leads to general questions
+            if current_stage and current_stage == 'UC_NJ6R1M':
+                print(f"🎂 Lead {lead_id} is in NEW APPROACH (birthday) - preserving stage despite general question")
+                # Only update if we have new location info
+                if new_park_location and new_park_location != "General":
+                    print(f"🏢 Birthday lead needs location update: {new_park_location}")
+                    return True
+                else:
+                    print(f"🎂 Birthday lead - no updates needed, preserving stage")
+                    return False
+            
+            # Regular general question handling
             if current_stage and current_stage == 'UC_0MD91B':
                 # Already in General Questions stage, no update needed
-                lead_id = user_info.get('bitrix_lead_id')
                 print(f"💬 Lead {lead_id} already in General Questions stage - no update needed")
                 return False
             else:
                 # Move to General Questions stage
-                lead_id = user_info.get('bitrix_lead_id')
                 print(f"💬 Should update lead {lead_id}: General question - moving to General Questions stage")
                 return True
 

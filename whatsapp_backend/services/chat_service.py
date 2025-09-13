@@ -211,7 +211,7 @@ class ChatService:
     
     async def send_response(self, phone: str, response: str) -> bool:
         """Send response message to user"""
-        return await self.session_manager.send_message(phone, response, "message")
+        return await self.session_manager.send_message(phone, response, "response")
     
     def get_status(self) -> Dict[str, Any]:
         """Get chat service status"""

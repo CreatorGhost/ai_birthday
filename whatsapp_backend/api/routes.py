@@ -29,24 +29,40 @@ async def startup_event():
 
 @router.get("/")
 async def root():
-    """Root endpoint - serves test HTML if available"""
+    """Root endpoint - serves WhatsApp-like chat simulator"""
+    try:
+        with open("whatsapp_chat_simulator.html", "r") as f:
+            html_content = f.read()
+        return HTMLResponse(content=html_content)
+    except FileNotFoundError:
+        try:
+            # Fallback to old test interface
+            with open("whatsapp_simple_test.html", "r") as f:
+                html_content = f.read()
+            return HTMLResponse(content=html_content)
+        except FileNotFoundError:
+            return {
+                "service": "WhatsApp Backend System",
+                "status": "running",
+                "mode": "TEST" if config.TEST_MODE else "PRODUCTION",
+                "endpoints": {
+                    "status": "/status",
+                    "webhook": "/webhook/whatsapp",
+                    "websocket": "/ws/{phone}",
+                    "chat": "/",
+                    "docs": "/docs"
+                }
+            }
+
+@router.get("/test")
+async def test_interface():
+    """Simple test interface"""
     try:
         with open("whatsapp_simple_test.html", "r") as f:
             html_content = f.read()
         return HTMLResponse(content=html_content)
     except FileNotFoundError:
-        return {
-            "service": "WhatsApp Backend System",
-            "status": "running",
-            "mode": "TEST" if config.TEST_MODE else "PRODUCTION",
-            "endpoints": {
-                "status": "/status",
-                "webhook": "/webhook/whatsapp",
-                "websocket": "/ws/{phone}",
-                "logs": "/logs",
-                "docs": "/docs"
-            }
-        }
+        return {"error": "Test interface not found"}
 
 @router.get("/status")
 async def get_status():

@@ -208,7 +208,7 @@ class RAGPipeline:
             ## Special Behavior — Promotions & News
             - When answering, if the topic or timing is relevant, *naturally* mention current offers, events, or news.
             - Example: If someone asks about visiting now, you can say:  
-              "Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
+              "Actually, right now we're running our Educational Months project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
             - The offer should feel helpful and inviting, never pushy.
 
             ## Goals
@@ -268,15 +268,18 @@ class RAGPipeline:
             To give you the most accurate details, could you please let me know which of our magical locations you're asking about?
             
             🏢 Our Leo & Loona locations:
-            • **Dalma Mall** (Abu Dhabi)
-            • **Yas Mall** (Abu Dhabi) 
-            • **Festival City** (Dubai)
+
+            • Dalma Mall (Abu Dhabi)
+
+            • Yas Mall (Abu Dhabi)
+
+            • Festival City (Dubai)
             
             Each location is special in its own way, and some details like pricing and hours may vary.
             
             Your question: "{question}"
             
-            By the way, we're currently celebrating **Educational Months** — would you like me to send you the daily schedule so you can plan ahead?
+            By the way, we're currently celebrating Educational Months — would you like me to send you the daily schedule so you can plan ahead?
             
             We can't wait to welcome you to Leo & Loona! ✨""",
             input_variables=["question", "datetime_context"]
@@ -339,7 +342,7 @@ class RAGPipeline:
             
             For the most accurate and up-to-date details, I'd love to connect you with our amazing {location} team directly:
             
-            📞 **Our friendly team can help with:**
+            📞 Our friendly team can help with:
             - Exact current pricing and special rates
             - Booking arrangements and availability
             - Group events and magical birthday parties
@@ -348,7 +351,7 @@ class RAGPipeline:
             
             Your question: "{question}"
             
-            Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?
+            Actually, right now we're running our Educational Months project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?
             
             Is there anything else about Leo & Loona that I can help you with using the information I do have? We're always here to make your visit as magical as possible! ✨""",
             input_variables=["question", "location"]
@@ -2348,7 +2351,7 @@ Please let us know which location you're interested in!"""
             ## Special Behavior — Promotions & News
             - When answering, if the topic or timing is relevant, *naturally* mention current offers, events, or news.
             - Example: If someone asks about visiting now, you can say:  
-              "Actually, right now we're running our **Educational Months** project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
+              "Actually, right now we're running our Educational Months project — if you're planning to visit soon, you might enjoy it! Would you like me to send you the daily schedule so you can plan ahead?"  
             - The offer should feel helpful and inviting, never pushy.
             
             ## Restrictions
@@ -3044,6 +3047,22 @@ Respond with only "YES" or "NO":""",
             name_refusal_status = f", refusal={combined_extraction.get('name_refusal', False)}" if combined_extraction.get('name_refusal') else ""
             print(f"🔥 LLM EXTRACTION: mall='{combined_extraction.get('mall_name')}' → {detected_location}, name='{name_extraction.get('extracted_name')}'{name_refusal_status}")
         
+        # 🚀 IMMEDIATE UPDATE: Update user profile as soon as we extract ANY information
+        extracted_name = name_extraction.get('extracted_name')
+        extracted_mall = detected_location if detected_location != "General" else None
+        
+        # Update name immediately if extracted
+        if extracted_name and extracted_name != user_profile.get("name"):
+            print(f"📝 Storing extracted name immediately: {extracted_name}")
+            self.user_tracker.update_user_profile(user_phone, extracted_name)
+            user_profile["name"] = extracted_name  # Update local copy
+        
+        # Update mall preference immediately if extracted
+        if extracted_mall and extracted_mall != user_profile.get('current_park_location'):
+            print(f"📝 Storing mall preference immediately: {extracted_mall}")
+            self.user_tracker.update_user_lead_info(user_phone, None, "mall_preference", extracted_mall)
+            user_profile["current_park_location"] = extracted_mall  # Update local copy
+        
         # 🎯 DETERMINE CONVERSATION FLOW ACTION
         action_info = self._get_conversation_flow_action(user_profile, combined_extraction, chat_history, question, user_phone)
         
@@ -3126,13 +3145,18 @@ I'll then answer your question about our {detected_mall_name} location! ✨"""
 
 To give you the best personalized assistance, could you please tell me:
 
-**👤 Your name**
+👤 Your name
 
-**🏢 Which location you're interested in:**
+🏢 Which location you're interested in:
 
-🌟 **Yas Mall** (Abu Dhabi - Yas Island)
-🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
-🌟 **Festival City** (Dubai)
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
 
 Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨"""
             # Store the original question for later (no mall detected)
@@ -3537,9 +3561,11 @@ Before I can help you further, may I please get your name? This will help me pro
             answer = """I'd be happy to help you with that! 😊 Leo & Loona has magical locations at different malls. Could you please let me know which location you're asking about?
 
 Our Leo & Loona parks are located at:
-🎪 **Dalma Mall** (Abu Dhabi)
-🎪 **Yas Mall** (Abu Dhabi)  
-🎪 **Festival City Mall** (Dubai)
+🎪 Dalma Mall (Abu Dhabi)
+
+🎪 Yas Mall (Abu Dhabi)
+
+🎪 Festival City Mall (Dubai)
 
 Which one would you like to know about? ✨"""
             
@@ -3615,10 +3641,16 @@ Which one would you like to know about? ✨"""
 
 Which location would you like to know about?
 
-🏢 **Our Locations:**
-1️⃣ **Yas Mall** - Yas Island, Abu Dhabi
-2️⃣ **Dalma Mall** - Mussafah, Abu Dhabi  
-3️⃣ **Festival City** - Dubai Festival City, Dubai
+🏢 Our Locations:
+
+1️⃣ Yas Mall 
+    (Yas Island, Abu Dhabi)
+
+2️⃣ Dalma Mall 
+    (Mussafah, Abu Dhabi)
+
+3️⃣ Festival City 
+    (Dubai Festival City, Dubai)
 
 Please let me know which location interests you, and I'll connect you with the right team for birthday party planning! 🎂"""
             
@@ -3629,10 +3661,16 @@ Please let me know which location interests you, and I'll connect you with the r
 
 To give you the most helpful information, which of our magical Leo & Loona locations are you interested in?
 
-🏢 **Choose Your Location:**
-• **Yas Mall** (Abu Dhabi - Yas Island)
-• **Dalma Mall** (Abu Dhabi - Mussafah)  
-• **Festival City** (Dubai)
+🏢 Choose Your Location:
+
+• Yas Mall 
+  (Abu Dhabi - Yas Island)
+
+• Dalma Mall 
+  (Abu Dhabi - Mussafah)
+
+• Festival City 
+  (Dubai)
 
 Or if you'd like general information about all locations, just let me know! ✨"""
             
@@ -3783,6 +3821,16 @@ Answer as Leo & Loona's warm, welcoming park host (using ONLY provided context):
             }
             detected_location = mall_mapping.get(mall_name, "General")
             print(f"🎯 LLM-detected location from stored question '{stored_question}': {mall_name} → {detected_location}")
+        
+        # 🔧 Define effective birthday location for stored question processing  
+        effective_birthday_location = detected_location
+        stored_mall = user_profile.get('current_park_location')
+        if detected_location == "General" and stored_mall:
+            effective_birthday_location = stored_mall
+            print(f"🎂 Using stored mall preference for stored question: {stored_mall}")
+        
+        # 🔧 Define combined content for lead processing (use stored_question only since this is stored question processing)
+        combined_content = stored_question
         
         # Handle Bitrix lead management for stored question (create new OR update existing)
         if self.lead_manager and user_profile.get("name"):
@@ -4227,13 +4275,18 @@ I'll then answer your question about our {mall_name} location! ✨"""
 
 To give you the best personalized assistance, could you please tell me:
 
-**👤 Your name**
+👤 Your name
 
-**🏢 Which location you're interested in:**
+🏢 Which location you're interested in:
 
-🌟 **Yas Mall** (Abu Dhabi - Yas Island)
-🌟 **Dalma Mall** (Abu Dhabi - Mussafah)  
-🌟 **Festival City** (Dubai)
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
 
 Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨"""
             
@@ -4459,12 +4512,18 @@ What would you like to know about Leo & Loona?"""
                 answer = f"""That's perfectly fine! I'm here to help you with any questions about Leo & Loona{mall_text}. 😊
 
 What would you like to know? I can tell you about:
-🎠 **Attractions & Rides**
-🎫 **Ticket Prices & Packages** 
-🕐 **Opening Hours**
-🎉 **Birthday Parties & Events**
-🍿 **Food & Dining Options**
-📍 **Location & Directions**
+
+🎠 Attractions & Rides
+
+🎫 Ticket Prices & Packages
+
+🕐 Opening Hours
+
+🎉 Birthday Parties & Events
+
+🍿 Food & Dining Options
+
+📍 Location & Directions
 
 Just ask me anything about our magical family amusement park! ✨"""
                 

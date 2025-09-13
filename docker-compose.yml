@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  whatsapp-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"  # WhatsApp Backend API & WebSocket
+      - "8501:8501"  # Streamlit (if needed)
+    environment:
+      - PYTHONPATH=/app
+      - WHATSAPP_TEST_MODE=true
+      - DEBUG=false
+    volumes:
+      # Mount data directories for persistence
+      - ./user_data:/app/user_data
+      - ./logs:/app/logs
+      - ./vector_store:/app/vector_store
+      - ./.env:/app/.env
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 40s
+    command: ["python", "start_whatsapp_backend.py", "--port", "8001", "--host", "0.0.0.0", "--mode", "production"]
+
+networks:
+  default:
+    name: whatsapp-backend-network

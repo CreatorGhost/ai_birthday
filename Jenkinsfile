@@ -2,26 +2,41 @@ pipeline {
     agent any
     
     environment {
-        IMAGE_NAME = 'ai-birthday'
-        CONTAINER_NAME = 'ai-birthday-app'
-        PORT = '8501'
+        // GCP Configuration
+        PROJECT_ID = 'your-gcp-project-id'
+        REGION = 'us-central1'
+        SERVICE_NAME = 'whatsapp-backend'
+        IMAGE_NAME = "gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+        
+        // Credentials
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-service-account-key')
+        
+        // Build info
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        LATEST_TAG = "latest"
     }
     
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out code...'
+                echo '🔄 Checking out source code...'
                 checkout scm
             }
         }
         
-        stage('Cleanup Old Container') {
+        stage('Environment Setup') {
             steps {
+                echo '🔧 Setting up environment...'
                 script {
-                    echo 'Stopping and removing old container if it exists...'
+                    // Verify required files exist
                     sh '''
-                        docker stop ${CONTAINER_NAME} || true
-                        docker rm ${CONTAINER_NAME} || true
+                        echo "📋 Checking required files..."
+                        ls -la Dockerfile
+                        ls -la whatsapp_chat_simulator.html
+                        ls -la start_whatsapp_backend.py
+                        ls -la requirements.txt
+                        
+                        echo "✅ All required files present"
                     '''
                 }
             }
@@ -29,67 +44,130 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
-                sh 'docker build -t ${IMAGE_NAME} .'
+                echo '🔨 Building Docker image...'
+                script {
+                    sh """
+                        # Authenticate with GCP
+                        gcloud auth activate-service-account --key-file=\${GOOGLE_APPLICATION_CREDENTIALS}
+                        gcloud config set project \${PROJECT_ID}
+                        
+                        # Configure Docker for GCR
+                        gcloud auth configure-docker --quiet
+                        
+                        # Build the image
+                        docker build -t \${IMAGE_NAME}:\${IMAGE_TAG} .
+                        docker tag \${IMAGE_NAME}:\${IMAGE_TAG} \${IMAGE_NAME}:\${LATEST_TAG}
+                        
+                        echo "✅ Docker image built successfully"
+                    """
+                }
             }
         }
         
-        stage('Deploy Application') {
+        stage('Push to GCR') {
             steps {
+                echo '📤 Pushing image to Google Container Registry...'
                 script {
-                    echo 'Deploying application with environment variables...'
-                    sh '''
-                        docker run -d \
-                            -p ${PORT}:${PORT} \
-                            --name ${CONTAINER_NAME} \
-                            --env-file .env \
-                            --restart unless-stopped \
-                            ${IMAGE_NAME}
-                    '''
+                    sh """
+                        # Push both tags
+                        docker push \${IMAGE_NAME}:\${IMAGE_TAG}
+                        docker push \${IMAGE_NAME}:\${LATEST_TAG}
+                        
+                        echo "✅ Image pushed to GCR"
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to Cloud Run') {
+            steps {
+                echo '🚀 Deploying to Google Cloud Run...'
+                script {
+                    sh """
+                        # Deploy to Cloud Run with WebSocket support
+                        gcloud run deploy \${SERVICE_NAME} \\
+                            --image=\${IMAGE_NAME}:\${IMAGE_TAG} \\
+                            --platform=managed \\
+                            --region=\${REGION} \\
+                            --allow-unauthenticated \\
+                            --port=8001 \\
+                            --memory=1Gi \\
+                            --cpu=1 \\
+                            --min-instances=0 \\
+                            --max-instances=10 \\
+                            --timeout=300 \\
+                            --concurrency=100 \\
+                            --set-env-vars="WHATSAPP_TEST_MODE=false,DEBUG=false" \\
+                            --quiet
+                        
+                        # Get the service URL
+                        SERVICE_URL=\$(gcloud run services describe \${SERVICE_NAME} \\
+                            --platform=managed \\
+                            --region=\${REGION} \\
+                            --format='value(status.url)')
+                        
+                        echo "✅ Service deployed successfully"
+                        echo "🌐 Service URL: \${SERVICE_URL}"
+                        echo "📱 WhatsApp Backend: \${SERVICE_URL}"
+                        echo "🌐 Test UI: \${SERVICE_URL}"
+                        echo "📊 Health Check: \${SERVICE_URL}/health"
+                        echo "📚 API Docs: \${SERVICE_URL}/docs"
+                        echo "🧪 WebSocket: \${SERVICE_URL}/ws/{phone} (use wss:// for HTTPS)"
+                    """
                 }
             }
         }
         
         stage('Health Check') {
             steps {
+                echo '🏥 Performing health check...'
                 script {
-                    echo 'Waiting for application to be healthy...'
-                    timeout(time: 3, unit: 'MINUTES') {
-                        sh '''
-                            echo "Waiting for container to start..."
-                            sleep 10
-                            
-                            # Wait for health check to pass
-                            for i in {1..18}; do
-                                if curl -f http://localhost:${PORT}/_stcore/health > /dev/null 2>&1; then
-                                    echo "✅ Application is healthy!"
-                                    exit 0
-                                fi
-                                echo "Attempt $i/18: Waiting for health check..."
-                                sleep 10
-                            done
-                            
-                            echo "❌ Health check failed after 3 minutes"
+                    sh """
+                        # Wait for deployment to be ready
+                        sleep 30
+                        
+                        # Get service URL and test health endpoint
+                        SERVICE_URL=\$(gcloud run services describe \${SERVICE_NAME} \\
+                            --platform=managed \\
+                            --region=\${REGION} \\
+                            --format='value(status.url)')
+                        
+                        # Health check
+                        echo "Testing health endpoint: \${SERVICE_URL}/health"
+                        if curl -f "\${SERVICE_URL}/health" -m 30; then
+                            echo "✅ Health check passed"
+                        else
+                            echo "❌ Health check failed"
                             exit 1
-                        '''
-                    }
+                        fi
+                        
+                        # Test UI endpoint
+                        echo "Testing UI endpoint: \${SERVICE_URL}/"
+                        if curl -f "\${SERVICE_URL}/" -m 30 | grep -q "WhatsApp Chat Simulator"; then
+                            echo "✅ UI is accessible"
+                        else
+                            echo "❌ UI test failed"
+                            exit 1
+                        fi
+                    """
                 }
             }
         }
         
-        stage('Verify Deployment') {
+        stage('Cleanup') {
             steps {
+                echo '🧹 Cleaning up local images...'
                 script {
-                    echo 'Verifying final deployment status...'
-                    sh '''
-                        echo "📊 Container Status:"
-                        docker ps --filter "name=${CONTAINER_NAME}" --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}"
+                    sh """
+                        # Remove local images to save space
+                        docker rmi \${IMAGE_NAME}:\${IMAGE_TAG} || true
+                        docker rmi \${IMAGE_NAME}:\${LATEST_TAG} || true
                         
-                        echo "\n🔍 Container Logs (last 20 lines):"
-                        docker logs --tail 20 ${CONTAINER_NAME}
+                        # Clean up dangling images
+                        docker image prune -f || true
                         
-                        echo "\n✅ Application URL: http://localhost:${PORT}"
-                    '''
+                        echo "✅ Cleanup completed"
+                    """
                 }
             }
         }
@@ -97,26 +175,43 @@ pipeline {
     
     post {
         success {
-            echo '🎉 Deployment successful! Application is running on http://localhost:8501'
-        }
-        failure {
+            echo '🎉 Deployment successful!'
             script {
-                echo '❌ Deployment failed! Cleaning up...'
-                sh '''
-                    echo "📋 Container logs for debugging:"
-                    docker logs ${CONTAINER_NAME} || true
+                sh """
+                    SERVICE_URL=\$(gcloud run services describe \${SERVICE_NAME} \\
+                        --platform=managed \\
+                        --region=\${REGION} \\
+                        --format='value(status.url)')
                     
-                    echo "🧹 Cleaning up failed deployment..."
-                    docker stop ${CONTAINER_NAME} || true
-                    docker rm ${CONTAINER_NAME} || true
+                    echo "=========================================="
+                    echo "🎉 DEPLOYMENT SUCCESSFUL!"
+                    echo "=========================================="
+                    echo "📱 WhatsApp Backend: \${SERVICE_URL}"
+                    echo "🌐 Test UI: \${SERVICE_URL}"
+                    echo "📊 Status: \${SERVICE_URL}/status"
+                    echo "📚 API Docs: \${SERVICE_URL}/docs" 
+                    echo "🧪 WebSocket: wss://\${SERVICE_URL#https://}/ws/{phone}"
+                    echo "=========================================="
+                """
+            }
+        }
+        
+        failure {
+            echo '❌ Deployment failed!'
+            script {
+                sh '''
+                    echo "📋 Checking logs for debugging..."
+                    gcloud run services logs read ${SERVICE_NAME} \\
+                        --platform=managed \\
+                        --region=${REGION} \\
+                        --limit=50 || true
                 '''
             }
         }
+        
         always {
-            script {
-                echo '🧹 Cleaning up unused Docker images...'
-                sh 'docker image prune -f || true'
-            }
+            echo '🧹 Final cleanup...'
+            sh 'docker system prune -f || true'
         }
     }
 }
