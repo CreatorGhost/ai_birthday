@@ -60,7 +60,7 @@ pipeline {
                             sleep 10
                             
                             # Wait for health check to pass
-                            for i in {1..18}; do
+                            for i in $(seq 1 18); do
                                 if curl -f http://localhost:${PORT}/health > /dev/null 2>&1; then
                                     echo "✅ Application is healthy!"
                                     exit 0
