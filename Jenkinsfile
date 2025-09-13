@@ -40,7 +40,7 @@ pipeline {
                     echo 'Deploying application with environment variables...'
                     sh '''
                         docker run -d \
-                            -p ${PORT}:${PORT} \
+                            -p 0.0.0.0:${PORT}:${PORT} \
                             --name ${CONTAINER_NAME} \
                             --env-file .env \
                             --restart unless-stopped \
