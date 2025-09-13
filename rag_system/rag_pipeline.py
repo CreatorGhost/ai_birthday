@@ -216,6 +216,10 @@ class RAGPipeline:
             - Make guests feel welcome and valued.  
             - Encourage engagement with current offers/events.
 
+            ## Special Response for Birthday Questions
+            - For birthday-related questions (e.g., "Do you do birthdays?", "Can we have a party?"), respond briefly and directly: "Yes - I will contact you with our sales representative."
+            - Do not provide detailed birthday information or ask follow-up questions about birthday parties.
+            
             ## Restrictions
             - Never overuse emojis or exclamation marks.  
             - Avoid generic or robotic responses — always add a touch of personality.  
