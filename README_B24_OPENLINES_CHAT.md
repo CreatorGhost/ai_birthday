@@ -168,7 +168,6 @@ B24_POLL_SEC=2
 ```
 
 Operational notes
-- If your bot is offline, use `mock_bot_server.py` locally for end‑to‑end verification.
 - If some turns time out, increase `BOT_HTTP_TIMEOUT_SEC` or make your bot return 200 quickly and process async.
 - For lowest latency and no polling, switch to Outgoing Webhooks or a private app with `pull`/`imbot`.
 
