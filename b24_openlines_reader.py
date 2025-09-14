@@ -26,8 +26,30 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+def _load_dotenv(path: str = ".env") -> None:
+    """Minimal .env loader (no external deps)."""
+    if not os.path.isfile(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                s = line.strip()
+                if not s or s.startswith("#"):
+                    continue
+                if s.startswith("export "):
+                    s = s[len("export "):]
+                if "=" not in s:
+                    continue
+                k, v = s.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                os.environ.setdefault(k, v)
+    except Exception:
+        pass
 
-WEBHOOK_BASE = "https://leoandloona.bitrix24.com/rest/36207/81qbhzj14xzkna6w/"
+
+_load_dotenv()
+WEBHOOK_BASE = os.environ.get("B24_WEBHOOK_BASE", "").rstrip("/")
 POLL_INTERVAL_SEC = float(os.environ.get("B24_POLL_SEC", "2"))
 
 
