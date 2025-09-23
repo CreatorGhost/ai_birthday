@@ -3405,3 +3405,288 @@ If you need more details or want to reserve a table, our team can help:
 - Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home
 
 We’d love to help you plan a delicious visit to Leo & Loona!
+[2025-09-22 02:16:19] | Phone: +971568978087 | Name: Unknown | USER: can you tell me the closing time?
+[2025-09-22 02:16:25] | Phone: +971568978087 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-22 02:16:39] | Phone: +971568978087 | Name: Unknown | USER: Yas Mall rajiv
+[2025-09-22 02:17:23] | Phone: +971568978087 | Name: Rajiv | BOT: Wonderful, Rajiv! 😊
+
+At our Yas Mall location (1st floor, beside Five Guys), closing time on weekdays (Sunday–Thursday) is 11:00 PM UAE time — so today (Monday) we close at 11:00 PM. On weekends (Friday–Saturday) we close at 12:00 AM; holiday hours follow the mall’s schedule.
+
+Helpful notes in case you’re planning to visit: weekday 2‑hour pass is 159 AED, full‑day 199 AED (upgrade +50 AED); adults enter free; 50% off Unlimited Day Pass for children under 1 and People of Determination with ID. Socks are required (5 AED kids / 8 AED adults). Tickets are non‑transferable and subject to our entry policies.
+
+Would you like me to send the booking link or reserve a slot for you? You can also call 04 2375454 or WhatsApp +971 501754133 — or book directly at https://booking.leoloona.ae/.
+[2025-09-22 02:17:23] | Phone: +971568978087 | Name: Rajiv | BOT: Wonderful, Rajiv! 😊
+
+At our Yas Mall location (1st floor, beside Five Guys), closing time on weekdays (Sunday–Thursday) is 11:00 PM UAE time — so today (Monday) we close at 11:00 PM. On weekends (Friday–Saturday) we close at 12:00 AM; holiday hours follow the mall’s schedule.
+
+Helpful notes in case you’re planning to visit: weekday 2‑hour pass is 159 AED, full‑day 199 AED (upgrade +50 AED); adults enter free; 50% off Unlimited Day Pass for children under 1 and People of Determination with ID. Socks are required (5 AED kids / 8 AED adults). Tickets are non‑transferable and subject to our entry policies.
+
+Would you like me to send the booking link or reserve a slot for you? You can also call 04 2375454 or WhatsApp +971 501754133 — or book directly at https://booking.leoloona.ae/.
+[2025-09-22 02:19:58] | Phone: +971502697888 | Name: Unknown | USER: what time to you close
+[2025-09-22 02:20:01] | Phone: +971502697888 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-22 02:20:17] | Phone: +971502697888 | Name: Unknown | USER: Dalma Mall rahual
+[2025-09-22 02:20:52] | Phone: +971502697888 | Name: Rahual | BOT: Great to meet you, Rahual! 🎠
+
+Do you mean our Dalma Mall location? If so — today (Monday, Sept 22, 2025 — UAE time) we close at 10:00 PM (UAE Standard Time, UTC+4). 
+
+Quick reference for Dalma Mall hours:
+- Sept to June: Sunday–Thursday 10:00 AM – 10:00 PM; Friday & Saturday 10:00 AM – 12:00 AM
+- July–August: Daily 10:00 AM – 12:00 AM
+
+Please note operating hours may change without prior notice. 🕒
+
+Would you like me to:
+- Hold tickets or check availability (booking.leoloona.ae)?
+- Reserve a table (phone: 04 2375454 / WhatsApp: +971522120754)?
+- Send the menu or directions?
+
+I’m happy to help plan your visit!
+[2025-09-22 02:20:52] | Phone: +971502697888 | Name: Rahual | BOT: Great to meet you, Rahual! 🎠
+
+Do you mean our Dalma Mall location? If so — today (Monday, Sept 22, 2025 — UAE time) we close at 10:00 PM (UAE Standard Time, UTC+4). 
+
+Quick reference for Dalma Mall hours:
+- Sept to June: Sunday–Thursday 10:00 AM – 10:00 PM; Friday & Saturday 10:00 AM – 12:00 AM
+- July–August: Daily 10:00 AM – 12:00 AM
+
+Please note operating hours may change without prior notice. 🕒
+
+Would you like me to:
+- Hold tickets or check availability (booking.leoloona.ae)?
+- Reserve a table (phone: 04 2375454 / WhatsApp: +971522120754)?
+- Send the menu or directions?
+
+I’m happy to help plan your visit!
+[2025-09-22 02:24:49] | Phone: +971502697888 | Name: Rahual | USER: do you have just dinein option?
+[2025-09-22 02:24:49] | Phone: +971502697888 | Name: Rahual | USER: do you have just dinein option?
+[2025-09-22 02:25:35] | Phone: +971502697888 | Name: Rahual | BOT: Oh, Rahual — what a lovely name! 😊
+
+Yes — our Dalma Mall restaurant is dine‑in only. Our food is amazing — just know you'll be surrounded by joyful kids! You can view the menu here: https://leoloona.ae/restaurant-dalma/
+
+If you'd like to reserve a table or need help, please call 04 2375454 or WhatsApp +971522120754. I can also help arrange the booking if you want — would you prefer a call or WhatsApp?
+[2025-09-22 02:25:35] | Phone: +971502697888 | Name: Rahual | BOT: Oh, Rahual — what a lovely name! 😊
+
+Yes — our Dalma Mall restaurant is dine‑in only. Our food is amazing — just know you'll be surrounded by joyful kids! You can view the menu here: https://leoloona.ae/restaurant-dalma/
+
+If you'd like to reserve a table or need help, please call 04 2375454 or WhatsApp +971522120754. I can also help arrange the booking if you want — would you prefer a call or WhatsApp?
+[2025-09-22 02:27:14] | Phone: +971568978087 | Name: Rajiv | USER: do you have just dinein option?
+[2025-09-22 02:27:14] | Phone: +971568978087 | Name: Rajiv | USER: do you have just dinein option?
+[2025-09-22 02:27:59] | Phone: +971568978087 | Name: Rajiv | BOT: Oh, Rajiv — what a beautiful name! 😊
+
+Yes — our restaurant at Leo & Loona Yas Mall is dine‑in only. Our delicious menu (designed by a Michelin‑starred chef) is served in the café that overlooks the play areas, and food/drinks may be consumed only in designated dining areas. Expect to be surrounded by joyful kids — our food is amazing, just a friendly heads‑up!
+
+Helpful links and contact if you’d like to book a table:
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Booking: https://booking.leoloona.ae/  
+- Landline: 04 2375454  
+- WhatsApp: +971 501754133  
+- Note: table reservations are available for birthday/event guests (subject to availability).  
+
+Would you like me to help reserve a table or send the booking link to your WhatsApp?
+[2025-09-22 02:27:59] | Phone: +971568978087 | Name: Rajiv | BOT: Oh, Rajiv — what a beautiful name! 😊
+
+Yes — our restaurant at Leo & Loona Yas Mall is dine‑in only. Our delicious menu (designed by a Michelin‑starred chef) is served in the café that overlooks the play areas, and food/drinks may be consumed only in designated dining areas. Expect to be surrounded by joyful kids — our food is amazing, just a friendly heads‑up!
+
+Helpful links and contact if you’d like to book a table:
+- Menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Booking: https://booking.leoloona.ae/  
+- Landline: 04 2375454  
+- WhatsApp: +971 501754133  
+- Note: table reservations are available for birthday/event guests (subject to availability).  
+
+Would you like me to help reserve a table or send the booking link to your WhatsApp?
+[2025-09-23 22:22:30] | Phone: +971560015355 | Name: Unknown | USER: hey do i need socks?
+[2025-09-23 22:22:33] | Phone: +971560015355 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-23 22:22:40] | Phone: +971560015355 | Name: Unknown | USER: Sumit ys mall
+[2025-09-23 22:23:10] | Phone: +971560015355 | Name: Sumit | BOT: Nice to meet you, Sumit! ✨
+
+Yes — socks are mandatory in all play zones for hygiene and safety. You can bring your own clean, non‑slip socks (recommended), or buy a pair from our reception when you arrive.
+
+If you’re visiting our Yas Mall location, socks are available at reception for:
+- Kids: 5 AED
+- Adults: 8 AED
+
+Quick reminders: tie long hair, remove loose jewelry/glasses/scarves before playing, and make sure children under 6 have direct adult supervision. Would you like me to book a slot for you, send the daily schedule, or share our current "Educational Months" activities?
+[2025-09-23 22:23:10] | Phone: +971560015355 | Name: Sumit | BOT: Nice to meet you, Sumit! ✨
+
+Yes — socks are mandatory in all play zones for hygiene and safety. You can bring your own clean, non‑slip socks (recommended), or buy a pair from our reception when you arrive.
+
+If you’re visiting our Yas Mall location, socks are available at reception for:
+- Kids: 5 AED
+- Adults: 8 AED
+
+Quick reminders: tie long hair, remove loose jewelry/glasses/scarves before playing, and make sure children under 6 have direct adult supervision. Would you like me to book a slot for you, send the daily schedule, or share our current "Educational Months" activities?
+[2025-09-23 22:23:33] | Phone: +971560015355 | Name: Sumit | USER: and do you do birtdays?
+[2025-09-23 22:23:33] | Phone: +971560015355 | Name: Sumit | USER: and do you do birtdays?
+[2025-09-23 22:24:19] | Phone: +971560015355 | Name: Sumit | BOT: Oh Sumit — what a wonderful idea! 🎉
+
+Yes — we do birthday parties at Leo & Loona Yas Mall. Birthdays here are truly magical, and our Sales team will be happy to help make it unforgettable. To get started, our Sales & Information Desk (located at the main entrance, opposite reception) handles birthday and event bookings — they’ll connect with you to arrange everything.
+
+Here are the party room options and some helpful details:
+- Leo Room — up to 55 kids (largest room, projection screen for celebrations)
+- Elf Room — up to 36 kids (elf-themed, interactive party tables, customizable screen)
+- City Room — up to 35 kids (customizable projection; can be united with Kids Room to accommodate up to 50)
+- Kids Room — up to 15 kids (cozy; can join City Room for larger groups)
+- VIP Room — up to 17 people (private, decorated space with dedicated service)
+
+Extras and helpful notes:
+- Our café seats up to 130 and offers a menu designed by a Michelin‑starred chef; table reservations for birthday/event guests are available (subject to availability).
+- Projection screens in several rooms can display your photos or custom content.
+- When you’re ready, Sales will ask for key details like event date, estimated time, and number of guests.
+
+Would you like me to have Sales contact you now? And do you prefer a phone call or a message?
+[2025-09-23 22:24:19] | Phone: +971560015355 | Name: Sumit | BOT: Oh Sumit — what a wonderful idea! 🎉
+
+Yes — we do birthday parties at Leo & Loona Yas Mall. Birthdays here are truly magical, and our Sales team will be happy to help make it unforgettable. To get started, our Sales & Information Desk (located at the main entrance, opposite reception) handles birthday and event bookings — they’ll connect with you to arrange everything.
+
+Here are the party room options and some helpful details:
+- Leo Room — up to 55 kids (largest room, projection screen for celebrations)
+- Elf Room — up to 36 kids (elf-themed, interactive party tables, customizable screen)
+- City Room — up to 35 kids (customizable projection; can be united with Kids Room to accommodate up to 50)
+- Kids Room — up to 15 kids (cozy; can join City Room for larger groups)
+- VIP Room — up to 17 people (private, decorated space with dedicated service)
+
+Extras and helpful notes:
+- Our café seats up to 130 and offers a menu designed by a Michelin‑starred chef; table reservations for birthday/event guests are available (subject to availability).
+- Projection screens in several rooms can display your photos or custom content.
+- When you’re ready, Sales will ask for key details like event date, estimated time, and number of guests.
+
+Would you like me to have Sales contact you now? And do you prefer a phone call or a message?
+[2025-09-23 22:31:00] | Phone: +971507144202 | Name: Unknown | USER: do you have breafkafst?
+[2025-09-23 22:31:03] | Phone: +971507144202 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-23 22:31:15] | Phone: +971507144202 | Name: Unknown | USER: Raju Yas mall
+[2025-09-23 22:32:37] | Phone: +971507144202 | Name: Raju | BOT: Wonderful, Raju! 😊
+
+Yes — we have a family café and dining area at Leo & Loona (Yas Mall) that serves meals suitable for kids and adults. Quick details:
+
+- Opening hours (park hours): Sun–Thu 10:00–23:00, Fri–Sat 10:00–24:00.  
+- Full menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Please note: no outside food or drinks inside the venue; food may only be consumed in designated dining areas.
+
+Would you like me to pull any breakfast options from the menu or share the park’s WhatsApp number so you can ask the café directly?
+[2025-09-23 22:32:37] | Phone: +971507144202 | Name: Raju | BOT: Wonderful, Raju! 😊
+
+Yes — we have a family café and dining area at Leo & Loona (Yas Mall) that serves meals suitable for kids and adults. Quick details:
+
+- Opening hours (park hours): Sun–Thu 10:00–23:00, Fri–Sat 10:00–24:00.  
+- Full menu: https://menu.leoloona.ae/LeoLoonaYas/en/home  
+- Please note: no outside food or drinks inside the venue; food may only be consumed in designated dining areas.
+
+Would you like me to pull any breakfast options from the menu or share the park’s WhatsApp number so you can ask the café directly?
+[2025-09-23 22:33:04] | Phone: +971507144202 | Name: Raju | USER: do you do birtdays?
+[2025-09-23 22:33:04] | Phone: +971507144202 | Name: Raju | USER: do you do birtdays?
+[2025-09-23 22:34:06] | Phone: +971507144202 | Name: Raju | BOT: Sales team will contact you shortly.
+[2025-09-23 22:34:06] | Phone: +971507144202 | Name: Raju | BOT: Sales team will contact you shortly.
+[2025-09-23 22:43:04] | Phone: +971548734215 | Name: Unknown | USER: What are the closing hours for Festival City?
+[2025-09-23 22:43:08] | Phone: +971548734215 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona Festival City!
+
+To give you the best personalized assistance, could you please tell me your name?
+
+I'll then answer your question about our Festival City location! ✨
+[2025-09-23 22:43:21] | Phone: +971548734215 | Name: Unknown | USER: jack
+[2025-09-23 22:43:56] | Phone: +971548734215 | Name: Jack | BOT: Great to meet you, Jack! 🎠
+
+Our Festival City location closes at:
+- Monday–Thursday: 11:00 PM
+- Friday–Sunday & Public Holidays: 12:00 AM (midnight)
+
+Today is Tuesday, so we close at 11:00 PM (UAE time, UTC+4). Please note hours can change without prior notice.
+
+If you want to double-check tonight or need anything else, you can contact us:
+- Phone: 04 2375454
+- WhatsApp: +971 501754133
+- Email: info.ll@leoloona.ae
+- Booking: https://booking.leoloona.ae/
+
+See you soon at Leo & Loona! ✨
+[2025-09-23 22:43:56] | Phone: +971548734215 | Name: Jack | BOT: Great to meet you, Jack! 🎠
+
+Our Festival City location closes at:
+- Monday–Thursday: 11:00 PM
+- Friday–Sunday & Public Holidays: 12:00 AM (midnight)
+
+Today is Tuesday, so we close at 11:00 PM (UAE time, UTC+4). Please note hours can change without prior notice.
+
+If you want to double-check tonight or need anything else, you can contact us:
+- Phone: 04 2375454
+- WhatsApp: +971 501754133
+- Email: info.ll@leoloona.ae
+- Booking: https://booking.leoloona.ae/
+
+See you soon at Leo & Loona! ✨
+[2025-09-23 22:55:42] | Phone: +971548734215 | Name: Jack | USER: ?
+[2025-09-23 22:55:42] | Phone: +971548734215 | Name: Jack | BOT: Thank you, Jack! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 22:55:44] | Phone: +971548734215 | Name: Jack | USER: .
+[2025-09-23 22:55:44] | Phone: +971548734215 | Name: Jack | BOT: Thank you, Jack! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 22:55:49] | Phone: +971548734215 | Name: Jack | USER: ,
+[2025-09-23 22:55:49] | Phone: +971548734215 | Name: Jack | BOT: Thank you, Jack! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 22:56:02] | Phone: +971548734215 | Name: Jack | USER: do i need socks?
+[2025-09-23 22:56:02] | Phone: +971548734215 | Name: Jack | USER: do i need socks?
