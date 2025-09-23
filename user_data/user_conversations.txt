@@ -3696,3 +3696,135 @@ Would you like help with anything else? You can also contact the Festival City t
 [2025-09-23 22:56:50] | Phone: +971548734215 | Name: Jack | BOT: Great question — yes, socks are mandatory in our play zones. If you need them at Leo & Loona Festival City, we sell socks for 5 AED (kids) and 8 AED (adults). 
 
 Would you like help with anything else? You can also contact the Festival City team at 04 2375454, WhatsApp +971 501754133, or info.ll@leoloona.ae 😊
+[2025-09-23 23:08:56] | Phone: +971541417477 | Name: Unknown | USER: do you do dine in
+[2025-09-23 23:08:56] | Phone: +971541417477 | Name: Unknown | BOT: I don't quite understand what you're trying to say. Could you please provide more details about what you're looking for?
+[2025-09-23 23:13:31] | Phone: +971500290876 | Name: Unknown | USER: do you do dine in
+[2025-09-23 23:13:34] | Phone: +971500290876 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-23 23:13:41] | Phone: +971500290876 | Name: Unknown | USER: sam festimval mall
+[2025-09-23 23:14:15] | Phone: +971500290876 | Name: Sam | BOT: Thank you, Sam! 😊
+
+Yes — we offer dine-in at Leo & Loona. Our café serves kid-friendly meals and full dishes for adults, with seating that overlooks the play areas so you can relax while keeping an eye on the little ones. Our food is lovely — just know you’ll be surrounded by joyful kids!
+
+Which location would you like details for: Yas Mall (Yas Island), Dalma Mall (Mussafah), or Festival City (Dubai)? Tell me the park and I’ll send the menu link and the park’s phone number for table reservations.
+
+If you mean Festival City, here are the details now:
+- Phone: 04 2375454
+- Menu: https://menu.leoloona.ae/LeoLoonaDFC/en/home
+
+Would you like me to help with a table booking or share the menu for a different location?
+[2025-09-23 23:14:15] | Phone: +971500290876 | Name: Sam | BOT: Thank you, Sam! 😊
+
+Yes — we offer dine-in at Leo & Loona. Our café serves kid-friendly meals and full dishes for adults, with seating that overlooks the play areas so you can relax while keeping an eye on the little ones. Our food is lovely — just know you’ll be surrounded by joyful kids!
+
+Which location would you like details for: Yas Mall (Yas Island), Dalma Mall (Mussafah), or Festival City (Dubai)? Tell me the park and I’ll send the menu link and the park’s phone number for table reservations.
+
+If you mean Festival City, here are the details now:
+- Phone: 04 2375454
+- Menu: https://menu.leoloona.ae/LeoLoonaDFC/en/home
+
+Would you like me to help with a table booking or share the menu for a different location?
+[2025-09-23 23:14:22] | Phone: +971500290876 | Name: Sam | USER: aaa
+[2025-09-23 23:14:22] | Phone: +971500290876 | Name: Sam | BOT: Thank you, Sam! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 23:14:26] | Phone: +971500290876 | Name: Sam | USER: .
+[2025-09-23 23:14:26] | Phone: +971500290876 | Name: Sam | BOT: Thank you, Sam! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 23:14:37] | Phone: +971500290876 | Name: Sam | USER: 😊
+[2025-09-23 23:14:37] | Phone: +971500290876 | Name: Sam | BOT: Thank you, Sam! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 23:17:05] | Phone: +971520368018 | Name: Unknown | USER: what is cost of socks
+[2025-09-23 23:17:09] | Phone: +971520368018 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-23 23:17:20] | Phone: +971520368018 | Name: Unknown | USER: jar ys mal
+[2025-09-23 23:17:58] | Phone: +971520368018 | Name: Jar | BOT: Great to meet you, Jar! 🎠
+
+At our Yas Mall location, socks are 5 AED for kids and 8 AED for adults. Would you like the booking link or our WhatsApp number to ask staff about availability?
+[2025-09-23 23:17:58] | Phone: +971520368018 | Name: Jar | BOT: Great to meet you, Jar! 🎠
+
+At our Yas Mall location, socks are 5 AED for kids and 8 AED for adults. Would you like the booking link or our WhatsApp number to ask staff about availability?
+[2025-09-23 23:18:26] | Phone: +971520368018 | Name: Jar | USER: .
+[2025-09-23 23:18:26] | Phone: +971520368018 | Name: Jar | USER: .
+[2025-09-23 23:18:44] | Phone: +971520368018 | Name: Jar | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "." accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-23 23:18:44] | Phone: +971520368018 | Name: Jar | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "." accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-23 23:20:29] | Phone: +971559101059 | Name: Unknown | USER: hey do i need socks
+[2025-09-23 23:20:34] | Phone: +971559101059 | Name: Unknown | BOT: Hello! 😊 Welcome to Leo & Loona!
+
+To give you the best personalized assistance, could you please tell me:
+
+👤 Your name
+
+🏢 Which location you're interested in:
+
+🌟 Yas Mall 
+   (Abu Dhabi - Yas Island)
+
+🌟 Dalma Mall 
+   (Abu Dhabi - Mussafah)
+
+🌟 Festival City 
+   (Dubai)
+
+Just let me know both pieces of information and I'll provide you with specific details for your preferred location! ✨
+[2025-09-23 23:20:43] | Phone: +971559101059 | Name: Unknown | USER: adi yas malll
+[2025-09-23 23:21:20] | Phone: +971559101059 | Name: Adi | BOT: Wonderful, Adi! 😊
+
+Yes — socks are mandatory in all play zones. You can bring your own clean socks or buy them at the venue. At our Yas Mall location they’re 5 AED for kids and 8 AED for adults. 
+
+Which location are you planning to visit so I can confirm the price and any other details?
+[2025-09-23 23:21:20] | Phone: +971559101059 | Name: Adi | BOT: Wonderful, Adi! 😊
+
+Yes — socks are mandatory in all play zones. You can bring your own clean socks or buy them at the venue. At our Yas Mall location they’re 5 AED for kids and 8 AED for adults. 
+
+Which location are you planning to visit so I can confirm the price and any other details?
+[2025-09-23 23:21:26] | Phone: +971559101059 | Name: Adi | USER: lkkj
+[2025-09-23 23:21:26] | Phone: +971559101059 | Name: Adi | BOT: Thank you, Adi! 😊 How can I help you with Leo & Loona today?
+[2025-09-23 23:21:28] | Phone: +971559101059 | Name: Adi | USER: .
+[2025-09-23 23:21:28] | Phone: +971559101059 | Name: Adi | USER: .
+[2025-09-23 23:21:49] | Phone: +971559101059 | Name: Adi | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "." accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊
+[2025-09-23 23:21:49] | Phone: +971559101059 | Name: Adi | BOT: I appreciate your question about Leo & Loona! However, I don't currently have the specific information needed to answer "." accurately.
+
+To ensure you get the most helpful and accurate information, I'd recommend contacting our team directly. They'll be able to provide you with detailed answers! 
+
+Is there anything else about Leo & Loona that I might be able to help you with? 😊

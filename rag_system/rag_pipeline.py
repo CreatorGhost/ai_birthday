@@ -4393,7 +4393,17 @@ Just let me know both pieces of information and I'll provide you with specific d
                     print(f"⚠️ Bitrix error in generic greeting: {e}")
                     lead_result = None
             
-            answer = f"Thank you, {name}! 😊 How can I help you with Leo & Loona today?"
+            # Check if the input is unclear (single chars, dots, emojis, meaningless text)
+            is_unclear = (
+                len(question.strip()) <= 2 or
+                question.strip() in [".", "?", "!", "😊", "👍", "❤️", "🙂", "😀"] or
+                question.strip().lower() in ["aaa", "bbb", "ccc", "kkk", "mmm", "lll", "hhh", "jjj"]
+            )
+
+            if is_unclear:
+                answer = "I don't quite understand what you're trying to say. Could you please provide more details about what you're looking for?"
+            else:
+                answer = f"Thank you, {name}! 😊 How can I help you with Leo & Loona today?"
             
             # Create response with lead info
             response = self._create_response(answer, [], question, chat_history, user_profile, detected_location)
