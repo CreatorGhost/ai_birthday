@@ -15,18 +15,18 @@ class LeadManager:
     MALL_ASSIGNMENT_CONFIG = {
         'Festival City': {
             'team_name': 'DFCM LL (Dubai Festival City Mall - Leo & Loona)',
-            'user_ids': [16711, 35, 33],  # Zariaah, Kizeleen, Jamaima
-            'user_names': ['Zariaah Nankinga', 'Kizeleen Fernandez', 'Jamaima Ampoloquio']
+            'user_ids': [35547],  # LL DFC Mall entity
+            'user_names': ['LL DFC Mall']
         },
         'Dalma Mall': {
-            'team_name': 'DALMA LL (Dalma Mall - Leo & Loona)', 
-            'user_ids': [20547],  # Mack
-            'user_names': ['Mack Ofiana']
+            'team_name': 'DALMA LL (Dalma Mall - Leo & Loona)',
+            'user_ids': [35553],  # LL Dalma Mall entity
+            'user_names': ['LL Dalma Mall']
         },
         'Yas Mall': {
             'team_name': 'YAS MALL LL (Yas Mall - Leo & Loona)',
-            'user_ids': [19663, 29759],  # Erra, Abdalaziz
-            'user_names': ['Erra Montenegro', 'Abdalaziz Said']
+            'user_ids': [35551],  # LL Yas Mall entity
+            'user_names': ['LL Yas Mall']
         },
         'General': {
             'team_name': 'General Inquiries',
